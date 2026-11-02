@@ -32,6 +32,16 @@ const MIGRATIONS=[
     on.updatedAt=Date.now();
     P['kash-ayadati']={fid:on.fid||'kash',name:'مشروع عيادتي',desc:'تطوير عيادات مستشفى الملك عبدالعزيز التخصصي ضمن مبادرة «عيادتي» لتعزيز جاهزية بيئة تقديم الخدمة والارتقاء بمستوى الخدمات المقدمة للمستفيدين.',status:'todo',progress:0,start:'',end:'',owner:'',cover:'img/ay_kash_a2.jpg',photos:ay,tasks:[],updates:[],order:(on.order??2)+0.5,updatedAt:Date.now()};
   }}
+,
+  {id:'m3-remove-eradah-dental-dates',run(st){
+    const F=st.facilities||{},P=st.projects||{};
+    delete F.eradah;
+    for(const id of Object.keys(P)) if(P[id].fid==='eradah') delete P[id];
+    const d=P['dental-clinics'];
+    if(d){d.start='2026-11-05';d.end='2026-11-28';
+      if(!d.desc||d.desc==='تضمين هوية الصحة القابضة في العيادات.')d.desc='تطوير 10 عيادات في مركز طب الأسنان التخصصي ضمن مبادرة «عيادتي» وتضمين هوية الصحة القابضة.';
+      d.updatedAt=Date.now();}
+  }}
 ];
 function migrate(st){st.migrations=st.migrations||[];let ch=false;for(const m of MIGRATIONS){if(!st.migrations.includes(m.id)){m.run(st);st.migrations.push(m.id);ch=true}}return ch}
 
