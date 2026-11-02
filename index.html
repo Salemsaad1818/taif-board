@@ -567,7 +567,7 @@ function renderGallery(){
 }
 function renderView(){
   const v=$('#view');
-  if(S.view==='log'){v.innerHTML=renderLogShell();bindLog();return}
+  if(S.view==='log'){if(!S.logReady){v.innerHTML=renderTable();return}try{v.innerHTML=renderLogShell();bindLog();return}catch(err){console.error(err);S.view='table'}}
   v.innerHTML=S.view==='kanban'?renderKanban():S.view==='timeline'?renderTimeline():S.view==='gallery'?renderGallery():renderTable();
 }
 function renderAll(){renderSummary();renderToolbar();renderView();if(S.openId&&!$('#layer').contains(document.activeElement))renderDrawer()}
@@ -1152,6 +1152,7 @@ function loginModal(){
     try{sessionStorage.setItem('thc-sess','1')}catch(err){}host.remove();setEdit(true);toast(ok==='admin'?'أهلاً '+name+'، دخلت كمسؤول ويمكنك رؤية سجل التعديلات':'أهلاً '+name+'، يمكنك التعديل الآن')});
 }
 async function startApi(){
+  S.logReady=true;
   const db=apiDb();S.db=db;
   S.downloads={async save({filename,data}){const a=document.createElement('a');a.href=URL.createObjectURL(data instanceof Blob?data:new Blob([data]));a.download=filename;document.body.appendChild(a);a.click();a.remove()}};
   $('#editBtn').addEventListener('click',()=>{if(S.readonly)loginModal();else setEdit(false)});
