@@ -254,7 +254,14 @@ input[type=range]{accent-color:var(--accent);padding:0;border:0;background:trans
 @media (max-width:620px){
   .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
   .kpi .val{font-size:25px}
-  .hero-in{padding:18px}
+  .hero{min-height:0}
+  .hero-in{padding:16px 16px 14px;gap:12px}
+  .hero h1{font-size:19px;line-height:1.3;margin-bottom:4px;text-wrap:balance}
+  .hero p{font-size:12.5px;line-height:1.6}
+  .ring-wrap{padding:8px 12px;gap:10px;border-radius:14px}
+  .ring-wrap svg{width:52px;height:52px}
+  .ring-wrap b{font-size:12px}
+  .ring-wrap span{font-size:11px}
   .fbar{grid-template-columns:minmax(0,120px) 1fr 40px}
   .fields{grid-template-columns:1fr}
   .tabs button span{display:none}
@@ -358,6 +365,7 @@ select.sel,.f select{background-image:linear-gradient(45deg,transparent 50%,#9AA
 .tbl-scroll,.tl-scroll,.kanban,.xmenu,.dr-body{-webkit-overflow-scrolling:touch}
 @supports not (aspect-ratio:1/1){.ph{height:0;padding-bottom:75%}.ph>img,.ph>button{position:absolute;top:0;left:0;width:100%;height:100%}.dr-gal .ph{padding-bottom:100%}}
 @media (max-width:620px){input,select,textarea{font-size:16px!important}}
+@media (max-width:380px){.hero h1{font-size:17px}.hero p{font-size:12px}}
 @media (hover:none){.ph:hover img{transform:none}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
