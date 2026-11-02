@@ -53,6 +53,18 @@ const MIGRATIONS=[
     if(F['peds-pt']&&F['peds-pt'].name==='العلاج الطبيعي للأطفال')F['peds-pt'].name='مستشفى الأطفال';
     if(F['peds-pt']&&!P['peds-physio'])P['peds-physio']={fid:'peds-pt',name:'مشروع العلاج الطبيعي',desc:'تحسين قسم العلاج الطبيعي للأطفال.',status:'todo',progress:0,start:'',end:'',owner:'',cover:'',photos:[],tasks:[],updates:[],order:1,updatedAt:Date.now()};
   }}
+,
+  {id:'m6-kfmc-er-icu-opd',run(st){
+    const P=st.projects||(st.projects={}),now=Date.now();
+    let n=0;const tk=arr=>arr.map((t,i)=>({id:'m6'+(++n),t,done:false,when:''}));
+    const vinyl=['إزالة الفينيل','رفع المخلفات وتنظيف الأرضيات','أعمال التسوية','أعمال اللحام'];
+    const er={fid:'kfh',name:'مشروع صيانة الطوارئ',desc:'صيانة أرضيات قسم الطوارئ خلال 4 أيام، وتشمل: إزالة الفينيل، رفع المخلفات وتنظيف الأرضيات، أعمال التسوية، أعمال اللحام.',start:'2026-11-04',end:'2026-11-07',tasks:tk(vinyl)};
+    const old=P['kfh-3'];
+    if(old&&old.name==='فينيل الطوارئ والعناية المركزة'){Object.assign(old,er,{updatedAt:now})}
+    else if(!P['kfh-er'])P['kfh-er']={...er,status:'todo',progress:0,owner:'',cover:'',photos:[],updates:[],order:3,updatedAt:now};
+    if(!P['kfh-icu'])P['kfh-icu']={fid:'kfh',name:'مشروع صيانة فينيل العناية المركزة',desc:'صيانة فينيل العناية المركزة خلال 20 يوماً، وتشمل: إزالة الفينيل، رفع المخلفات وتنظيف الأرضيات، أعمال التسوية، أعمال اللحام.',start:'2026-12-01',end:'2026-12-20',status:'todo',progress:0,owner:'',cover:'',photos:[],tasks:tk(vinyl),updates:[],order:3.5,updatedAt:now};
+    if(!P['kfh-opd'])P['kfh-opd']={fid:'kfh',name:'مشروع صيانة 15 عيادة بالعيادات الخارجية',desc:'صيانة 15 عيادة في العيادات الخارجية خلال شهر، وتشمل الأرضيات والأسقف والدهانات.',start:'2026-11-01',end:'2026-11-30',status:'prog',progress:0,owner:'',cover:'',photos:[],tasks:tk(['الأرضيات','الأسقف','الدهانات']),updates:[],order:1.5,updatedAt:now};
+  }}
 ];
 function migrate(st){st.migrations=st.migrations||[];let ch=false;for(const m of MIGRATIONS){if(!st.migrations.includes(m.id)){m.run(st);st.migrations.push(m.id);ch=true}}return ch}
 
