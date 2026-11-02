@@ -323,6 +323,14 @@ body.editing .dr-title{border-color:#2F4DA0;background:#081B66}
 .ls b{font-family:var(--display);font-weight:800;font-size:22px;color:var(--c)}
 .logfil{display:flex;gap:8px;flex-wrap:wrap}
 .logfil .search{flex:1 1 200px}
+.logwho:empty{display:none}
+.lwh{font-family:var(--display);font-weight:600;font-size:14px;margin:0 0 8px}
+.lwl{display:flex;gap:8px;flex-wrap:wrap}
+.lw{display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:8px 12px;text-align:start;color:var(--fg)}
+.lw:hover{border-color:var(--accent)}
+.lw .lav{width:32px;height:32px}
+.lw small{display:block;color:var(--dim);font-size:11.5px;margin-top:2px}
+.le.lin{padding:9px 14px;background:transparent;border-style:dashed}
 .lday{font-family:var(--display);font-weight:600;font-size:14px;color:var(--muted);margin:8px 0 8px}
 .lgrp{display:grid;gap:8px}
 .le{display:flex;gap:12px;align-items:flex-start;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
@@ -1019,7 +1027,7 @@ renderAll();
 const API={pin:'',name:'',role:''};
 try{const a=JSON.parse(localStorage.getItem('thc-edit')||'{}');API.pin=a.pin||'';API.name=a.name||'';API.role=a.role||'editor'}catch(e){}
 /* ---------- admin audit log ---------- */
-const LOG={entries:null,loading:false,err:'',user:'all',fac:'all',q:''};
+const LOG={entries:null,loading:false,err:'',user:'all',fac:'all',q:'',type:'all'};
 const isAdmin=()=>!S.readonly&&API.role==='admin';
 async function loadLog(){
   LOG.loading=true;LOG.err='';fillLog();
@@ -1032,20 +1040,24 @@ const DAYF=new Intl.DateTimeFormat('ar-SA-u-ca-gregory-nu-latn',{weekday:'long',
 function renderLogShell(){
   if(!isAdmin())return `<div class="empty"><b>سجل التعديلات للمسؤول فقط</b><span>ادخل برمز المسؤول لعرض من عدّل ماذا ومتى.</span></div>`;
   return `<section class="logw">
-    <div class="loghead"><div><h2>سجل التعديلات</h2><p class="note">كل تعديل يسويه الموظفون على المشاريع والمنشآت، بالاسم والوقت. يظهر للمسؤول فقط.</p></div>
+    <div class="loghead"><div><h2>سجل التعديلات</h2><p class="note">من دخل ومتى، وكل تعديل على المشاريع والمنشآت بالاسم والوقت. يظهر للمسؤول فقط.</p></div>
       <div class="logact"><button class="btn" id="logRefresh">↻ تحديث</button><button class="btn" id="logXlsx">⤓ تصدير السجل Excel</button></div></div>
     <div class="logstats" id="logStats"></div>
-    <div class="logfil"><select class="sel" id="logUser" aria-label="الموظف"></select><select class="sel" id="logFac" aria-label="المنشأة"></select><label class="search"><input id="logQ" type="search" placeholder="ابحث في السجل" value="${esc(LOG.q)}"></label></div>
+    <div class="logwho" id="logWho"></div>
+    <div class="logfil"><select class="sel" id="logType" aria-label="نوع السجل"><option value="all">التعديلات والدخول</option><option value="edit">التعديلات فقط</option><option value="login">الدخول فقط</option></select><select class="sel" id="logUser" aria-label="الموظف"></select><select class="sel" id="logFac" aria-label="المنشأة"></select><label class="search"><input id="logQ" type="search" placeholder="ابحث في السجل" value="${esc(LOG.q)}"></label></div>
     <div id="logList"></div></section>`;
 }
-function logFiltered(){const q=LOG.q.trim();return (LOG.entries||[]).filter(e=>(LOG.user==='all'||e.by===LOG.user)&&(LOG.fac==='all'||e.fac===LOG.fac||(e.target==='منشأة'&&e.name===LOG.fac))&&(!q||JSON.stringify(e).includes(q)))}
+function logFiltered(){const q=LOG.q.trim();return (LOG.entries||[]).filter(e=>(LOG.type==='all'||(LOG.type==='login')===(e.action==='دخول'))&&(LOG.user==='all'||e.by===LOG.user)&&(LOG.fac==='all'||e.fac===LOG.fac||(e.target==='منشأة'&&e.name===LOG.fac))&&(!q||JSON.stringify(e).includes(q)))}
 function renderLogFilters(){
   const u=$('#logUser'),f=$('#logFac');if(!u)return;
   const users=[...new Set((LOG.entries||[]).map(e=>e.by))];const facs=facsSorted().map(x=>x.name);
   u.innerHTML=`<option value="all">كل الموظفين</option>`+users.map(n=>`<option ${LOG.user===n?'selected':''}>${esc(n)}</option>`).join('');
   f.innerHTML=`<option value="all">كل المنشآت</option>`+facs.map(n=>`<option ${LOG.fac===n?'selected':''}>${esc(n)}</option>`).join('');
-  const all=LOG.entries||[],today=DAYF.format(new Date()),td=all.filter(e=>DAYF.format(new Date(e.at))===today);
-  $('#logStats').innerHTML=[['إجمالي التعديلات',all.length,'#2BD4F0'],['تعديلات اليوم',td.length,'#22C55E'],['عدد الموظفين',users.length,'#F5A524'],['آخر تعديل',all[0]?TF12.format(new Date(all[0].at)):'—','#A78BFA']].map(x=>`<div class="ls" style="--c:${x[2]}"><span>${x[0]}</span><b class="tab-num">${x[1]}</b></div>`).join('');
+  const all=LOG.entries||[],today=DAYF.format(new Date()),edits=all.filter(e=>e.action!=='دخول'),logins=all.filter(e=>e.action==='دخول'),td=edits.filter(e=>DAYF.format(new Date(e.at))===today),tl=logins.filter(e=>DAYF.format(new Date(e.at))===today);
+  const who={};logins.forEach(e=>{const w=who[e.by]||(who[e.by]={n:0,last:e,role:e.role});w.n++});
+  const wl=Object.entries(who);
+  $('#logWho').innerHTML=wl.length?`<h3 class="lwh">من دخل للتعديل</h3><div class="lwl">${wl.map(([n,w])=>`<button class="lw" data-who="${esc(n)}"><span class="lav" style="background:${w.role==='admin'?'#7C8CFF':'#16307F'}">${esc(n.trim().charAt(0))}</span><span><b>${esc(n)}</b>${w.role==='admin'?' <span class="lrole">مسؤول</span>':''}<small>آخر دخول: ${DAYF.format(new Date(w.last.at))===today?'اليوم':DS.format(new Date(w.last.at))} ${TF12.format(new Date(w.last.at))}${w.last.device?' · '+esc(w.last.device):''} · ${w.n} مرة</small></span></button>`).join('')}</div>`:'';
+  $('#logStats').innerHTML=[['إجمالي التعديلات',edits.length,'#2BD4F0'],['تعديلات اليوم',td.length,'#22C55E'],['مرات الدخول اليوم',tl.length,'#F5A524'],['آخر دخول',logins[0]?TF12.format(new Date(logins[0].at)):'—','#A78BFA']].map(x=>`<div class="ls" style="--c:${x[2]}"><span>${x[0]}</span><b class="tab-num">${x[1]}</b></div>`).join('');
 }
 function changeHtml(c){
   if(c.text)return `<li>${esc(c.text)}${c.photos?`<span class="lph">${c.photos.map(s=>`<img src="${esc(s)}" alt="" loading="lazy">`).join('')}</span>`:''}</li>`;
@@ -1060,6 +1072,7 @@ function fillLog(){
   let html='',day='';
   for(const e of list.slice(0,400)){
     const d=DAYF.format(new Date(e.at));if(d!==day){if(day)html+='</div>';html+=`<h4 class="lday">${d}</h4><div class="lgrp">`;day=d}
+    if(e.action==='دخول'){html+=`<article class="le lin"><div class="lav" style="background:${e.role==='admin'?'#7C8CFF':'#16307F'}">${esc((e.by||'؟').trim().charAt(0))}</div><div class="lbody"><div class="ltop"><b>${esc(e.by)}</b>${e.role==='admin'?'<span class="lrole">مسؤول</span>':''}<span class="lact" style="--c:#F5A524">سجّل الدخول</span>${e.device?`<span class="note">من ${esc(e.device)}</span>`:''}<span class="ltime">${TF12.format(new Date(e.at))}</span></div></div></article>`;continue}
     const ac={'إضافة':'#22C55E','حذف':'#F43F5E','تعديل':'#2BD4F0'}[e.action]||'#2BD4F0';
     html+=`<article class="le"><div class="lav" style="background:${e.role==='admin'?'#7C8CFF':'#16307F'}">${esc((e.by||'؟').trim().charAt(0))}</div>
       <div class="lbody"><div class="ltop"><b>${esc(e.by)}</b>${e.role==='admin'?'<span class="lrole">مسؤول</span>':''}<span class="lact" style="--c:${ac}">${e.action} ${e.target}</span><span class="ltime">${TF12.format(new Date(e.at))}</span></div>
@@ -1072,6 +1085,8 @@ function bindLog(){
   const g=id=>document.getElementById(id);if(!g('logList'))return;
   g('logRefresh').onclick=()=>loadLog();
   g('logUser').onchange=e=>{LOG.user=e.target.value;fillLog()};
+  g('logType').value=LOG.type;g('logType').onchange=e=>{LOG.type=e.target.value;fillLog()};
+  g('logWho').onclick=e=>{const b=e.target.closest('[data-who]');if(!b)return;LOG.user=LOG.user===b.dataset.who?'all':b.dataset.who;$('#logUser').value=LOG.user;fillLog()};
   g('logFac').onchange=e=>{LOG.fac=e.target.value;fillLog()};
   g('logQ').oninput=e=>{LOG.q=e.target.value;fillLog()};
   g('logXlsx').onclick=exportLogExcel;
@@ -1083,7 +1098,7 @@ async function exportLogExcel(){
   try{await loadScript(LIBS.xlsx);const wb=new ExcelJS.Workbook();wb.creator='سالم سعد الشهري - تجمع الطائف الصحي';const ws=wb.addWorksheet('سجل التعديلات',{properties:{tabColor:{argb:'FF7C8CFF'}}});
     ws.views=[{rightToLeft:true,state:'frozen',ySplit:1}];
     ws.columns=[{header:'التاريخ',width:26},{header:'الوقت',width:12},{header:'الموظف',width:20},{header:'الصلاحية',width:10},{header:'الإجراء',width:16},{header:'المنشأة',width:28},{header:'الاسم',width:34},{header:'التفاصيل',width:80}];
-    list.forEach(e=>ws.addRow([DAYF.format(new Date(e.at)),TF12.format(new Date(e.at)),e.by,e.role==='admin'?'مسؤول':'موظف',e.action+' '+e.target,e.fac||'',e.name,(e.changes||[]).map(c=>c.text||`${c.label}: من ${c.from} إلى ${c.to}`).join(' | ')]));
+    list.forEach(e=>ws.addRow([DAYF.format(new Date(e.at)),TF12.format(new Date(e.at)),e.by,e.role==='admin'?'مسؤول':'موظف',e.action==='دخول'?'تسجيل دخول'+(e.device?' ('+e.device+')':''):e.action+' '+e.target,e.fac||'',e.name,(e.changes||[]).map(c=>c.text||`${c.label}: من ${c.from} إلى ${c.to}`).join(' | ')]));
     ws.getRow(1).eachCell(c=>{c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF16307F'}};c.font={bold:true,color:{argb:'FFFFFFFF'},name:'Arial'};c.alignment={horizontal:'center',vertical:'middle'}});
     ws.eachRow((r,i)=>{if(i>1)r.eachCell(c=>{c.alignment={vertical:'top',horizontal:'right',wrapText:true};c.font={name:'Arial',size:11}})});
     ws.autoFilter={from:{row:1,column:1},to:{row:1,column:8}};
@@ -1103,7 +1118,7 @@ function apiDb(){
       onSnapshot(fn,err){L[c].push(fn);if(st)fn({docs:Object.entries(st[c]||{}).map(([id,d])=>({id,data:()=>d})),metadata:{fromCache:false}});return()=>{L[c]=L[c].filter(x=>x!==fn)}},
       doc(id){id=id||uid2();return{id,set:d=>send({c,id,op:'set',data:d}),update:d=>send({c,id,op:'update',data:d}),delete:()=>send({c,id,op:'delete'})}}
     }},
-    pull,ping:async(pin)=>{const r=await fetch('/api/data',{method:'POST',headers:{'content-type':'application/json','x-edit-pin':pin},body:'{"op":"ping"}'});if(!r.ok)return null;try{return (await r.json()).role||'editor'}catch(e){return 'editor'}}
+    pull,ping:async(pin,name,login)=>{const r=await fetch('/api/data',{method:'POST',headers:{'content-type':'application/json','x-edit-pin':pin,'x-editor-name':encodeURIComponent(name||'')},body:JSON.stringify({op:'ping',login:!!login})});if(!r.ok)return null;try{return (await r.json()).role||'editor'}catch(e){return 'editor'}}
   };
   return db;
 }
@@ -1131,10 +1146,10 @@ function loginModal(){
   document.body.appendChild(host);$('#lgName').focus();
   host.addEventListener('click',e=>{if(e.target.closest('[data-mclose]'))host.remove()});
   host.querySelector('form').addEventListener('submit',async e=>{e.preventDefault();const name=$('#lgName').value.trim(),pin=$('#lgPin').value.trim();
-    let ok=null;try{ok=await S.db.ping(pin)}catch(err){}
+    let ok=null;try{ok=await S.db.ping(pin,name,true)}catch(err){}
     if(!ok){$('#lgErr').hidden=false;return}
     API.pin=pin;API.name=name;API.role=ok;try{localStorage.setItem('thc-edit',JSON.stringify(API))}catch(err){}
-    host.remove();setEdit(true);toast(ok==='admin'?'أهلاً '+name+'، دخلت كمسؤول ويمكنك رؤية سجل التعديلات':'أهلاً '+name+'، يمكنك التعديل الآن')});
+    try{sessionStorage.setItem('thc-sess','1')}catch(err){}host.remove();setEdit(true);toast(ok==='admin'?'أهلاً '+name+'، دخلت كمسؤول ويمكنك رؤية سجل التعديلات':'أهلاً '+name+'، يمكنك التعديل الآن')});
 }
 async function startApi(){
   const db=apiDb();S.db=db;
@@ -1142,6 +1157,8 @@ async function startApi(){
   $('#editBtn').addEventListener('click',()=>{if(S.readonly)loginModal();else setEdit(false)});
   $('#edExit').addEventListener('click',()=>setEdit(false));
   setEdit(!!API.pin);
+  if(API.pin){let seen=false;try{seen=sessionStorage.getItem('thc-sess')==='1'}catch(e){}
+    if(!seen){db.ping(API.pin,API.name,true).then(role=>{if(!role){setEdit(false);return}try{sessionStorage.setItem('thc-sess','1')}catch(e){}if(role!==API.role){API.role=role;try{localStorage.setItem('thc-edit',JSON.stringify(API))}catch(e){}setEdit(true)}}).catch(()=>{})}}
   let gotF=false,gotP=false;
   const done=()=>{if(gotF&&gotP){S.loaded=true;$('#sync').innerHTML='<span class="dot" style="background:var(--s-done)"></span>متزامن · يتحدث تلقائياً'}renderAll()};
   db.collection('facilities').onSnapshot(s=>{S.fac=s.docs.map(d=>({id:d.id,...d.data()}));gotF=true;done()});

@@ -13,7 +13,14 @@ module.exports = async (req, res) => {
     const role = pinRole(req);
     if (!role) return res.status(401).json({ error: 'pin' });
     const ops = Array.isArray(req.body?.ops) ? req.body.ops : [req.body || {}];
-    if (ops.every(o => o.op === 'ping')) return res.status(200).json({ role });
+    if (ops.every(o => o.op === 'ping')) {
+      if (ops.some(o => o.login)) {
+        const ua = String(req.headers['user-agent'] || '');
+        const dev = /iPhone/.test(ua) ? 'آيفون' : /iPad/.test(ua) ? 'آيباد' : /Android/.test(ua) ? 'أندرويد' : /Windows/.test(ua) ? 'ويندوز' : /Mac OS/.test(ua) ? 'ماك' : 'جهاز آخر';
+        await appendLog([{ at: Date.now(), by: editorName(req), role, action: 'دخول', target: '', name: '', fac: '', device: dev, changes: [] }]).catch(() => {});
+      }
+      return res.status(200).json({ role });
+    }
     const by = editorName(req), at = Date.now(), entries = [];
     const { state, blobs } = await readState();
     let changed = false;
