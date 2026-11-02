@@ -301,6 +301,7 @@ input[type=range]{accent-color:var(--accent);padding:0;border:0;background:trans
       <button class="btn pri" id="addProj">+ مشروع</button>
       <button class="btn" id="addFac">+ منشأة</button>
       <button class="btn ghost" id="exportBtn" hidden>تصدير Excel</button>
+      <button class="btn" id="loginBtn" hidden>دخول للتعديل</button>
     </div>
     <div class="chips" id="chips"></div>
   </nav>
@@ -494,7 +495,7 @@ function renderDrawer(){
     </div>
     <div><div class="sec-t">التحديثات <small>سجل المتابعة</small></div>
       <form class="addline" id="upForm"><input id="upNew" placeholder="اكتب تحديثاً للفريق" aria-label="تحديث جديد"><button class="btn">نشر</button></form>
-      <div class="upd" style="margin-top:8px">${ups.map(u=>`<div class="u"><div class="h"><span>${esc(S.names[u.by]||'عضو الفريق')}</span><span>${DF.format(new Date(u.at))}</span></div><p>${esc(u.text)}</p></div>`).join('')||'<div class="note">لا توجد تحديثات بعد.</div>'}</div>
+      <div class="upd" style="margin-top:8px">${ups.map(u=>`<div class="u"><div class="h"><span>${esc(S.names[u.by]||(!S.user&&u.by)||'عضو الفريق')}</span><span>${DF.format(new Date(u.at))}</span></div><p>${esc(u.text)}</p></div>`).join('')||'<div class="note">لا توجد تحديثات بعد.</div>'}</div>
     </div>
     <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;border-top:1px solid var(--line2);padding-top:14px"><span class="note">آخر تعديل: ${p.updatedAt?DF.format(new Date(p.updatedAt)):'—'}</span><button class="btn danger" id="delProj">حذف المشروع</button></div>
    </div></aside>`;
@@ -517,7 +518,7 @@ function renderDrawer(){
   bind('#syncProg','click',()=>{const t=p.tasks||[];const v=Math.round(t.filter(x=>x.done).length/t.length*100);save(p0,{progress:v,status:v===100?'done':v>0&&p.status==='todo'?'prog':p.status})});
   bind('#phFile','change',async e=>{
     const files=[...e.target.files];if(!files.length||!S.assets)return;const label=$('#phLabel').value;const note=$('#uplNote');
-    const added=[];for(const [i,file] of files.entries()){note.textContent=`جارٍ الرفع ${i+1} من ${files.length}…`;try{const r=await S.assets.upload(file);added.push({src:'/_blob/'+r.id,label,asset:r.id})}catch(err){toast('تعذّر رفع '+file.name)}}
+    const added=[];for(const [i,file] of files.entries()){note.textContent=`جارٍ الرفع ${i+1} من ${files.length}…`;try{const r=await S.assets.upload(file);added.push({src:r.src||('/_blob/'+r.id),label,asset:r.id||''})}catch(err){toast('تعذّر رفع '+file.name)}}
     if(added.length){const cur=S.proj.find(x=>x.id===p0);await save(p0,{photos:[...photos(cur),...added],...(cur.cover?{}:{cover:added[0].src})});toast('تمت إضافة '+added.length+' صورة')}
   });
   const del=$('#delProj');del&&del.addEventListener('click',async()=>{if(!del.classList.contains('armed')){del.classList.add('armed');del.textContent='اضغط مرة أخرى لتأكيد الحذف';setTimeout(()=>{if(del.isConnected){del.classList.remove('armed');del.textContent='حذف المشروع'}},4000);return}
@@ -604,6 +605,62 @@ let rz;window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>
 
 renderAll();
 
+/* ---------- Vercel adapter ---------- */
+const API={pin:'',name:''};
+try{const a=JSON.parse(localStorage.getItem('thc-edit')||'{}');API.pin=a.pin||'';API.name=a.name||''}catch(e){}
+function apiDb(){
+  const L={facilities:[],projects:[]};let st=null,pending=0;
+  const emit=()=>{for(const c in L){const docs=Object.entries((st&&st[c])||{}).map(([id,d])=>({id,data:()=>d}));L[c].forEach(fn=>fn({docs,metadata:{fromCache:false,hasPendingWrites:false}}))}};
+  async function pull(){if(pending)return;const r=await fetch('/api/data',{cache:'no-store'});if(!r.ok)throw new Error('load');const j=await r.json();if(pending)return;if(!st||j.rev!==st.rev){st=j;emit()}}
+  async function send(o){pending++;try{const r=await fetch('/api/data',{method:'POST',headers:{'content-type':'application/json','x-edit-pin':API.pin},body:JSON.stringify(o)});if(r.status===401){setEdit(false);throw {code:'permission_denied'}}if(!r.ok)throw {code:'error'};st=await r.json()}finally{pending--}emit()}
+  const uid2=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+  const db={
+    collection(c){return{
+      onSnapshot(fn,err){L[c].push(fn);if(st)fn({docs:Object.entries(st[c]||{}).map(([id,d])=>({id,data:()=>d})),metadata:{fromCache:false}});return()=>{L[c]=L[c].filter(x=>x!==fn)}},
+      doc(id){id=id||uid2();return{id,set:d=>send({c,id,op:'set',data:d}),update:d=>send({c,id,op:'update',data:d}),delete:()=>send({c,id,op:'delete'})}}
+    }},
+    pull,ping:async(pin)=>{const r=await fetch('/api/data',{method:'POST',headers:{'content-type':'application/json','x-edit-pin':pin},body:'{"op":"ping"}'});return r.ok}
+  };
+  return db;
+}
+function shrink(file){return new Promise(res=>{const img=new Image();img.onload=()=>{const m=1600,s=Math.min(1,m/Math.max(img.width,img.height));const cv=document.createElement('canvas');cv.width=Math.round(img.width*s);cv.height=Math.round(img.height*s);cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);cv.toBlob(b=>res(b||file),'image/jpeg',0.82)};img.onerror=()=>res(file);img.src=URL.createObjectURL(file)})}
+const apiAssets={async upload(file){const b=await shrink(file);const r=await fetch('/api/upload',{method:'POST',headers:{'content-type':b.type||'image/jpeg','x-edit-pin':API.pin},body:b});if(!r.ok)throw new Error('upload');const j=await r.json();return{src:j.url}}};
+function setEdit(on){
+  S.readonly=!on;document.body.classList.toggle('ro',!on);
+  document.querySelectorAll('#addProj,#addFac').forEach(b=>b.hidden=!on);
+  S.assets=on?apiAssets:null;S.myId=on?API.name:'';
+  const lb=$('#loginBtn');lb.hidden=false;lb.textContent=on?'خروج من التعديل':'دخول للتعديل';
+  if(!on&&API.pin){API.pin='';try{localStorage.removeItem('thc-edit')}catch(e){}}
+  renderAll();
+}
+function loginModal(){
+  const host=document.createElement('div');host.className='modal';host.innerHTML=`<div class="scrim" data-mclose></div><form class="box" style="position:relative;z-index:1">
+    <h3>الدخول للتعديل</h3>
+    <div class="f"><label for="lgName">اسمك (يظهر في التحديثات)</label><input id="lgName" required value="${esc(API.name)}" placeholder="مثال: سالم"></div>
+    <div class="f"><label for="lgPin">رمز التعديل</label><input id="lgPin" required inputmode="numeric" autocomplete="off"></div>
+    <p class="note" id="lgErr" style="margin:0;color:#FDA4AF" hidden>الرمز غير صحيح، تأكد منه وحاول مرة أخرى.</p>
+    <div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn ghost" data-mclose>إلغاء</button><button class="btn pri">دخول</button></div></form>`;
+  document.body.appendChild(host);$('#lgName').focus();
+  host.addEventListener('click',e=>{if(e.target.closest('[data-mclose]'))host.remove()});
+  host.querySelector('form').addEventListener('submit',async e=>{e.preventDefault();const name=$('#lgName').value.trim(),pin=$('#lgPin').value.trim();
+    let ok=false;try{ok=await S.db.ping(pin)}catch(err){}
+    if(!ok){$('#lgErr').hidden=false;return}
+    API.pin=pin;API.name=name;try{localStorage.setItem('thc-edit',JSON.stringify(API))}catch(err){}
+    host.remove();setEdit(true);toast('أهلاً '+name+'، يمكنك التعديل الآن')});
+}
+async function startApi(){
+  const db=apiDb();S.db=db;
+  S.downloads={async save({filename,data}){const a=document.createElement('a');a.href=URL.createObjectURL(data instanceof Blob?data:new Blob([data]));a.download=filename;document.body.appendChild(a);a.click();a.remove()}};
+  $('#exportBtn').hidden=false;
+  $('#loginBtn').addEventListener('click',()=>{if(S.readonly)loginModal();else setEdit(false)});
+  setEdit(!!API.pin);
+  let gotF=false,gotP=false;
+  const done=()=>{if(gotF&&gotP){S.loaded=true;$('#sync').innerHTML='<span class="dot" style="background:var(--s-done)"></span>متزامن · يتحدث تلقائياً'}renderAll()};
+  db.collection('facilities').onSnapshot(s=>{S.fac=s.docs.map(d=>({id:d.id,...d.data()}));gotF=true;done()});
+  db.collection('projects').onSnapshot(s=>{S.proj=s.docs.map(d=>({id:d.id,...d.data()}));gotP=true;done()});
+  try{await db.pull()}catch(e){useSnapshot();$('#loginBtn').hidden=true;return}
+  setInterval(()=>{if(document.visibilityState==='visible')db.pull().catch(()=>{$('#sync').textContent='تعذّر التحديث، سيُعاد المحاولة'})},15000);
+}
 /* ---------- data ---------- */
 function useSnapshot(){
   try{const s=JSON.parse(document.getElementById('snap').textContent);S.fac=s.fac||[];S.proj=s.proj||[];S.readonly=true}catch(e){}
@@ -613,7 +670,7 @@ function useSnapshot(){
 }
 (async()=>{
   const c=window.claude;
-  if(!c||!c.use){useSnapshot();return}
+  if(!c||!c.use){startApi();return}
   c.use('assets').then(a=>{S.assets=a;if(S.openId)renderDrawer()}).catch(()=>{});
   c.use('downloads').then(d=>{S.downloads=d;$('#exportBtn').hidden=!d}).catch(()=>{});
   c.use('user').then(async u=>{S.user=u;if(u){try{S.myId=await u.id()}catch(e){}}}).catch(()=>{});
