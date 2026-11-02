@@ -309,6 +309,33 @@ body.editing .dr-title{border-color:#2F4DA0;background:#081B66}
 .xmenu .xb button{border:1px solid var(--line);background:var(--bg);color:var(--fg);padding:6px 10px;border-radius:8px;font-size:12px;font-weight:700;display:inline-block}
 .xmenu .xb .xp:hover{background:#E5484D;border-color:#E5484D}
 .xmenu .xb .xx:hover{background:#1D9E5A;border-color:#1D9E5A}
+.logw{display:grid;gap:14px}
+.loghead{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.loghead h2{font-family:var(--display);font-weight:700;font-size:22px;margin:0 0 4px}
+.loghead p{margin:0}
+.logact{display:flex;gap:8px;flex-wrap:wrap}
+.logstats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.ls{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+.ls span{display:block;font-size:12px;color:var(--muted)}
+.ls b{font-family:var(--display);font-weight:800;font-size:22px;color:var(--c)}
+.logfil{display:flex;gap:8px;flex-wrap:wrap}
+.logfil .search{flex:1 1 200px}
+.lday{font-family:var(--display);font-weight:600;font-size:14px;color:var(--muted);margin:8px 0 8px}
+.lgrp{display:grid;gap:8px}
+.le{display:flex;gap:12px;align-items:flex-start;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.lav{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-weight:700;color:#fff;flex:none;border:1px solid var(--line)}
+.lbody{flex:1;min-width:0}
+.ltop{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.lrole{font-size:11px;padding:1px 8px;border-radius:99px;background:#7C8CFF33;color:#C7CEFF}
+.lact{font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:7px;color:var(--c);background:color-mix(in srgb,var(--c) 16%,transparent)}
+.ltime{margin-inline-start:auto;color:var(--dim);font-size:12px;white-space:nowrap}
+.lname{margin-top:4px;font-weight:600}
+.lch{margin:6px 0 0;padding-inline-start:18px;color:#C9D4FA;font-size:13px;display:grid;gap:3px}
+.lfrom{color:#FDA4AF;unicode-bidi:isolate}
+.lto{color:#86EFAC;font-weight:600;unicode-bidi:isolate}
+.lph{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.lph img{width:56px;height:42px;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
+@media (max-width:620px){.logstats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
@@ -355,6 +382,7 @@ body.editing .dr-title{border-color:#2F4DA0;background:#081B66}
         <button id="v-kanban" data-v="kanban"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1.5" y="2" width="3.6" height="12" rx="1.2"/><rect x="6.2" y="2" width="3.6" height="8" rx="1.2"/><rect x="10.9" y="2" width="3.6" height="10" rx="1.2"/></svg><span>لوحة البطاقات</span></button>
         <button id="v-timeline" data-v="timeline"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 4h7M5 8h8M3 12h6"/></svg><span>الجدول الزمني</span></button>
         <button id="v-gallery" data-v="gallery"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1.5" y="2.5" width="13" height="11" rx="2"/><circle cx="5.5" cy="6.5" r="1.4"/><path d="m2 12 4-3.5 3 2.5 2-1.5 3.5 3"/></svg><span>الصور</span></button>
+        <button id="v-log" data-v="log" hidden><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="6"/><path d="M8 4.8V8l2.2 1.6"/></svg><span>سجل التعديلات</span></button>
       </div>
       <label class="search"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3.5 3.5"/></svg><input id="q" type="search" placeholder="ابحث عن مشروع أو مسؤول"></label>
       <select id="fStatus" class="sel" aria-label="تصفية حسب الحالة"></select>
@@ -528,6 +556,7 @@ function renderGallery(){
 }
 function renderView(){
   const v=$('#view');
+  if(S.view==='log'){v.innerHTML=renderLogShell();bindLog();return}
   v.innerHTML=S.view==='kanban'?renderKanban():S.view==='timeline'?renderTimeline():S.view==='gallery'?renderGallery():renderTable();
 }
 function renderAll(){renderSummary();renderToolbar();renderView();if(S.openId&&!$('#layer').contains(document.activeElement))renderDrawer()}
@@ -932,20 +961,94 @@ let rz;window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>
 renderAll();
 
 /* ---------- Vercel adapter ---------- */
-const API={pin:'',name:''};
-try{const a=JSON.parse(localStorage.getItem('thc-edit')||'{}');API.pin=a.pin||'';API.name=a.name||''}catch(e){}
+const API={pin:'',name:'',role:''};
+try{const a=JSON.parse(localStorage.getItem('thc-edit')||'{}');API.pin=a.pin||'';API.name=a.name||'';API.role=a.role||'editor'}catch(e){}
+/* ---------- admin audit log ---------- */
+const LOG={entries:null,loading:false,err:'',user:'all',fac:'all',q:''};
+const isAdmin=()=>!S.readonly&&API.role==='admin';
+async function loadLog(){
+  LOG.loading=true;LOG.err='';fillLog();
+  try{const r=await fetch('/api/log',{headers:{'x-edit-pin':API.pin},cache:'no-store'});if(!r.ok)throw r.status;LOG.entries=(await r.json()).entries||[]}
+  catch(e){LOG.err=e===403?'هذا السجل متاح للمسؤول فقط.':'تعذّر تحميل السجل، حاول مرة أخرى.'}
+  LOG.loading=false;if(S.view==='log'){renderLogFilters();fillLog()}
+}
+const TF12=new Intl.DateTimeFormat('ar-SA-u-nu-latn',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:'Asia/Riyadh'});
+const DAYF=new Intl.DateTimeFormat('ar-SA-u-ca-gregory-nu-latn',{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:'Asia/Riyadh'});
+function renderLogShell(){
+  if(!isAdmin())return `<div class="empty"><b>سجل التعديلات للمسؤول فقط</b><span>ادخل برمز المسؤول لعرض من عدّل ماذا ومتى.</span></div>`;
+  return `<section class="logw">
+    <div class="loghead"><div><h2>سجل التعديلات</h2><p class="note">كل تعديل يسويه الموظفون على المشاريع والمنشآت، بالاسم والوقت. يظهر للمسؤول فقط.</p></div>
+      <div class="logact"><button class="btn" id="logRefresh">↻ تحديث</button><button class="btn" id="logXlsx">⤓ تصدير السجل Excel</button></div></div>
+    <div class="logstats" id="logStats"></div>
+    <div class="logfil"><select class="sel" id="logUser" aria-label="الموظف"></select><select class="sel" id="logFac" aria-label="المنشأة"></select><label class="search"><input id="logQ" type="search" placeholder="ابحث في السجل" value="${esc(LOG.q)}"></label></div>
+    <div id="logList"></div></section>`;
+}
+function logFiltered(){const q=LOG.q.trim();return (LOG.entries||[]).filter(e=>(LOG.user==='all'||e.by===LOG.user)&&(LOG.fac==='all'||e.fac===LOG.fac||(e.target==='منشأة'&&e.name===LOG.fac))&&(!q||JSON.stringify(e).includes(q)))}
+function renderLogFilters(){
+  const u=$('#logUser'),f=$('#logFac');if(!u)return;
+  const users=[...new Set((LOG.entries||[]).map(e=>e.by))];const facs=facsSorted().map(x=>x.name);
+  u.innerHTML=`<option value="all">كل الموظفين</option>`+users.map(n=>`<option ${LOG.user===n?'selected':''}>${esc(n)}</option>`).join('');
+  f.innerHTML=`<option value="all">كل المنشآت</option>`+facs.map(n=>`<option ${LOG.fac===n?'selected':''}>${esc(n)}</option>`).join('');
+  const all=LOG.entries||[],today=DAYF.format(new Date()),td=all.filter(e=>DAYF.format(new Date(e.at))===today);
+  $('#logStats').innerHTML=[['إجمالي التعديلات',all.length,'#2BD4F0'],['تعديلات اليوم',td.length,'#22C55E'],['عدد الموظفين',users.length,'#F5A524'],['آخر تعديل',all[0]?TF12.format(new Date(all[0].at)):'—','#A78BFA']].map(x=>`<div class="ls" style="--c:${x[2]}"><span>${x[0]}</span><b class="tab-num">${x[1]}</b></div>`).join('');
+}
+function changeHtml(c){
+  if(c.text)return `<li>${esc(c.text)}${c.photos?`<span class="lph">${c.photos.map(s=>`<img src="${esc(s)}" alt="" loading="lazy">`).join('')}</span>`:''}</li>`;
+  return `<li><b>${esc(c.label)}</b>: من <span class="lfrom">${esc(c.from)}</span> إلى <span class="lto">${esc(c.to)}</span></li>`;
+}
+function fillLog(){
+  const el=$('#logList');if(!el)return;
+  if(LOG.loading&&!LOG.entries){el.innerHTML='<div class="empty"><b>جارٍ تحميل السجل…</b></div>';return}
+  if(LOG.err){el.innerHTML=`<div class="empty"><b>${esc(LOG.err)}</b></div>`;return}
+  const list=logFiltered();
+  if(!list.length){el.innerHTML=`<div class="empty"><b>${LOG.entries&&LOG.entries.length?'لا توجد تعديلات تطابق التصفية':'لا توجد تعديلات مسجّلة بعد'}</b><span>يبدأ التسجيل من الآن مع كل تعديل يسويه الموظفون.</span></div>`;return}
+  let html='',day='';
+  for(const e of list.slice(0,400)){
+    const d=DAYF.format(new Date(e.at));if(d!==day){if(day)html+='</div>';html+=`<h4 class="lday">${d}</h4><div class="lgrp">`;day=d}
+    const ac={'إضافة':'#22C55E','حذف':'#F43F5E','تعديل':'#2BD4F0'}[e.action]||'#2BD4F0';
+    html+=`<article class="le"><div class="lav" style="background:${e.role==='admin'?'#7C8CFF':'#16307F'}">${esc((e.by||'؟').trim().charAt(0))}</div>
+      <div class="lbody"><div class="ltop"><b>${esc(e.by)}</b>${e.role==='admin'?'<span class="lrole">مسؤول</span>':''}<span class="lact" style="--c:${ac}">${e.action} ${e.target}</span><span class="ltime">${TF12.format(new Date(e.at))}</span></div>
+      <div class="lname">«${esc(e.name)}»${e.fac?` <span class="note">· ${esc(e.fac)}</span>`:''}</div>
+      ${e.changes&&e.changes.length?`<ul class="lch">${e.changes.map(changeHtml).join('')}</ul>`:''}</div></article>`;
+  }
+  el.innerHTML=html+'</div>'+(list.length>400?`<p class="note">يظهر آخر 400 تعديل. صدّر السجل لرؤية الكل.</p>`:'');
+}
+function bindLog(){
+  const g=id=>document.getElementById(id);if(!g('logList'))return;
+  g('logRefresh').onclick=()=>loadLog();
+  g('logUser').onchange=e=>{LOG.user=e.target.value;fillLog()};
+  g('logFac').onchange=e=>{LOG.fac=e.target.value;fillLog()};
+  g('logQ').oninput=e=>{LOG.q=e.target.value;fillLog()};
+  g('logXlsx').onclick=exportLogExcel;
+  if(LOG.entries){renderLogFilters();fillLog()}else loadLog();
+}
+async function exportLogExcel(){
+  const list=logFiltered();if(!list.length){toast('لا توجد تعديلات للتصدير');return}
+  const b=busy('جارٍ تجهيز السجل…');
+  try{await loadScript(LIBS.xlsx);const wb=new ExcelJS.Workbook();const ws=wb.addWorksheet('سجل التعديلات',{properties:{tabColor:{argb:'FF7C8CFF'}}});
+    ws.views=[{rightToLeft:true,state:'frozen',ySplit:1}];
+    ws.columns=[{header:'التاريخ',width:26},{header:'الوقت',width:12},{header:'الموظف',width:20},{header:'الصلاحية',width:10},{header:'الإجراء',width:16},{header:'المنشأة',width:28},{header:'الاسم',width:34},{header:'التفاصيل',width:80}];
+    list.forEach(e=>ws.addRow([DAYF.format(new Date(e.at)),TF12.format(new Date(e.at)),e.by,e.role==='admin'?'مسؤول':'موظف',e.action+' '+e.target,e.fac||'',e.name,(e.changes||[]).map(c=>c.text||`${c.label}: من ${c.from} إلى ${c.to}`).join(' | ')]));
+    ws.getRow(1).eachCell(c=>{c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF16307F'}};c.font={bold:true,color:{argb:'FFFFFFFF'},name:'Arial'};c.alignment={horizontal:'center',vertical:'middle'}});
+    ws.eachRow((r,i)=>{if(i>1)r.eachCell(c=>{c.alignment={vertical:'top',horizontal:'right',wrapText:true};c.font={name:'Arial',size:11}})});
+    ws.autoFilter={from:{row:1,column:1},to:{row:1,column:8}};
+    const buf=await wb.xlsx.writeBuffer();b.close();
+    await deliver(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),`سجل-التعديلات-${stamp()}.xlsx`);
+  }catch(e){b.close();toast('تعذّر تصدير السجل')}
+}
+
 function apiDb(){
   const L={facilities:[],projects:[]};let st=null,pending=0;
   const emit=()=>{for(const c in L){const docs=Object.entries((st&&st[c])||{}).map(([id,d])=>({id,data:()=>d}));L[c].forEach(fn=>fn({docs,metadata:{fromCache:false,hasPendingWrites:false}}))}};
   async function pull(){if(pending)return;const r=await fetch('/api/data',{cache:'no-store'});if(!r.ok)throw new Error('load');const j=await r.json();if(pending)return;if(!st||j.rev!==st.rev){st=j;emit()}}
-  async function send(o){pending++;try{const r=await fetch('/api/data',{method:'POST',headers:{'content-type':'application/json','x-edit-pin':API.pin},body:JSON.stringify(o)});if(r.status===401){setEdit(false);throw {code:'permission_denied'}}if(!r.ok)throw {code:'error'};st=await r.json()}finally{pending--}emit()}
+  async function send(o){pending++;try{const r=await fetch('/api/data',{method:'POST',headers:{'content-type':'application/json','x-edit-pin':API.pin,'x-editor-name':encodeURIComponent(API.name||'')},body:JSON.stringify(o)});if(r.status===401){setEdit(false);throw {code:'permission_denied'}}if(!r.ok)throw {code:'error'};st=await r.json()}finally{pending--}emit()}
   const uid2=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
   const db={
     collection(c){return{
       onSnapshot(fn,err){L[c].push(fn);if(st)fn({docs:Object.entries(st[c]||{}).map(([id,d])=>({id,data:()=>d})),metadata:{fromCache:false}});return()=>{L[c]=L[c].filter(x=>x!==fn)}},
       doc(id){id=id||uid2();return{id,set:d=>send({c,id,op:'set',data:d}),update:d=>send({c,id,op:'update',data:d}),delete:()=>send({c,id,op:'delete'})}}
     }},
-    pull,ping:async(pin)=>{const r=await fetch('/api/data',{method:'POST',headers:{'content-type':'application/json','x-edit-pin':pin},body:'{"op":"ping"}'});return r.ok}
+    pull,ping:async(pin)=>{const r=await fetch('/api/data',{method:'POST',headers:{'content-type':'application/json','x-edit-pin':pin},body:'{"op":"ping"}'});if(!r.ok)return null;try{return (await r.json()).role||'editor'}catch(e){return 'editor'}}
   };
   return db;
 }
@@ -957,7 +1060,9 @@ function setEdit(on){
   S.assets=on?apiAssets:null;S.myId=on?API.name:'';
   document.body.classList.toggle('editing',on);
   const eb=$('#editBtn');eb.hidden=false;$('#editTxt').textContent=on?'إنهاء التعديل':'تعديل';
-  $('#viewBar').hidden=on;$('#edName').textContent=API.name||'';
+  $('#viewBar').hidden=on;$('#edName').textContent=(API.name||'')+(on&&API.role==='admin'?' (مسؤول)':'');
+  const adm=on&&API.role==='admin';document.body.classList.toggle('admin',adm);$('#v-log').hidden=!adm;if(!adm&&S.view==='log'){S.view='table';remember()}
+  if(!adm){LOG.entries=null}
   if(!on&&API.pin){API.pin='';try{localStorage.removeItem('thc-edit')}catch(e){}}
   renderAll();
 }
@@ -965,16 +1070,16 @@ function loginModal(){
   const host=document.createElement('div');host.className='modal';host.innerHTML=`<div class="scrim" data-mclose></div><form class="box" style="position:relative;z-index:1">
     <h3>✎ الدخول لوضع التعديل</h3><p class="note" style="margin:0">أدخل اسمك ورمز التعديل. يتذكر الجهاز الرمز فلا تحتاج إدخاله كل مرة.</p>
     <div class="f"><label for="lgName">اسمك (يظهر في التحديثات)</label><input id="lgName" required value="${esc(API.name)}" placeholder="مثال: سالم"></div>
-    <div class="f"><label for="lgPin">رمز التعديل</label><input id="lgPin" required inputmode="numeric" autocomplete="off"></div>
+    <div class="f"><label for="lgPin">رمز التعديل (رمز الموظفين أو رمز المسؤول)</label><input id="lgPin" required inputmode="numeric" autocomplete="off"></div>
     <p class="note" id="lgErr" style="margin:0;color:#FDA4AF" hidden>الرمز غير صحيح، تأكد منه وحاول مرة أخرى.</p>
     <div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn ghost" data-mclose>إلغاء</button><button class="btn pri">دخول</button></div></form>`;
   document.body.appendChild(host);$('#lgName').focus();
   host.addEventListener('click',e=>{if(e.target.closest('[data-mclose]'))host.remove()});
   host.querySelector('form').addEventListener('submit',async e=>{e.preventDefault();const name=$('#lgName').value.trim(),pin=$('#lgPin').value.trim();
-    let ok=false;try{ok=await S.db.ping(pin)}catch(err){}
+    let ok=null;try{ok=await S.db.ping(pin)}catch(err){}
     if(!ok){$('#lgErr').hidden=false;return}
-    API.pin=pin;API.name=name;try{localStorage.setItem('thc-edit',JSON.stringify(API))}catch(err){}
-    host.remove();setEdit(true);toast('أهلاً '+name+'، يمكنك التعديل الآن')});
+    API.pin=pin;API.name=name;API.role=ok;try{localStorage.setItem('thc-edit',JSON.stringify(API))}catch(err){}
+    host.remove();setEdit(true);toast(ok==='admin'?'أهلاً '+name+'، دخلت كمسؤول ويمكنك رؤية سجل التعديلات':'أهلاً '+name+'، يمكنك التعديل الآن')});
 }
 async function startApi(){
   const db=apiDb();S.db=db;
