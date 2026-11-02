@@ -42,6 +42,11 @@ const MIGRATIONS=[
       if(!d.desc||d.desc==='تضمين هوية الصحة القابضة في العيادات.')d.desc='تطوير 10 عيادات في مركز طب الأسنان التخصصي ضمن مبادرة «عيادتي» وتضمين هوية الصحة القابضة.';
       d.updatedAt=Date.now();}
   }}
+,
+  {id:'m4-add-peds-pt',run(st){
+    const F=st.facilities||(st.facilities={});
+    if(!F['peds-pt'])F['peds-pt']={name:'العلاج الطبيعي للأطفال',sub:'',color:'#A78BFA',order:6};
+  }}
 ];
 function migrate(st){st.migrations=st.migrations||[];let ch=false;for(const m of MIGRATIONS){if(!st.migrations.includes(m.id)){m.run(st);st.migrations.push(m.id);ch=true}}return ch}
 
