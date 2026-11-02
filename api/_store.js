@@ -20,6 +20,18 @@ const MIGRATIONS=[
     add('kfh-1',{name:'مشروع عيادتي – مركز العيون',desc:'تطوير عيادات مركز العيون '+INTRO,cover:'img/ay_kfmc_a3.jpg',photos:[ph('fac_kfmc','المنشأة'),...set('ay_kfmc')]});
     add('eradah-clinics',{desc:'تطوير عيادات مجمع إرادة والصحة النفسية '+INTRO,cover:'img/ay_er_a1.jpg',photos:[ph('fac_eradah','المنشأة'),...set('ay_er')]});
   }}
+,
+  {id:'m2-split-kash-ayadati',run(st){
+    const P=st.projects||(st.projects={}),on=P['onco-clinics'];
+    if(!on||P['kash-ayadati'])return;
+    const isAy=x=>/img\/(ay_kash_|fac_kash)/.test(x.src||'');
+    const ay=(on.photos||[]).filter(isAy);
+    on.photos=(on.photos||[]).filter(x=>!isAy(x));
+    if(on.name==='مشروع عيادتي – مركز الأورام')on.name='مشروع مركز الأورام';
+    if(on.cover&&isAy({src:on.cover}))on.cover=(on.photos[0]||{}).src||'';
+    on.updatedAt=Date.now();
+    P['kash-ayadati']={fid:on.fid||'kash',name:'مشروع عيادتي',desc:'تطوير عيادات مستشفى الملك عبدالعزيز التخصصي ضمن مبادرة «عيادتي» لتعزيز جاهزية بيئة تقديم الخدمة والارتقاء بمستوى الخدمات المقدمة للمستفيدين.',status:'todo',progress:0,start:'',end:'',owner:'',cover:'img/ay_kash_a2.jpg',photos:ay,tasks:[],updates:[],order:(on.order??2)+0.5,updatedAt:Date.now()};
+  }}
 ];
 function migrate(st){st.migrations=st.migrations||[];let ch=false;for(const m of MIGRATIONS){if(!st.migrations.includes(m.id)){m.run(st);st.migrations.push(m.id);ch=true}}return ch}
 
