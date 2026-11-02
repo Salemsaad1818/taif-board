@@ -1,0 +1,632 @@
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>لوحة مشاريع تجمع الطائف</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alexandria:wght@500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
+<style>
+/* Layout: dark navy command board — hero + KPI strip, then a Monday-style work area (table / kanban / timeline / gallery) with a side drawer per project. */
+:root{
+  --bg:#0A1430; --bg2:#0E1A3D; --panel:#122251; --panel2:#182B60; --line:#24386F; --line2:#1B2D5C;
+  --fg:#EEF3FF; --muted:#93A4CF; --dim:#6879A6;
+  --accent:#2BD4F0; --accent2:#7C8CFF;
+  --s-todo:#7B8AB0; --s-prog:#F5A524; --s-final:#38BDF8; --s-stuck:#F43F5E; --s-done:#22C55E;
+  --display:"Alexandria","IBM Plex Sans Arabic",Tahoma,sans-serif;
+  --body:"IBM Plex Sans Arabic","Segoe UI",Tahoma,sans-serif;
+  --r:14px;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--fg)}
+body{font-family:var(--body);font-size:14px;line-height:1.55;direction:rtl;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 40px;
+  background:radial-gradient(1200px 500px at 85% -10%,#173A7A55,transparent 60%),radial-gradient(900px 400px at 0% 10%,#0F4C6A40,transparent 60%),var(--bg)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1380px;margin:0 auto}
+.tab-num{font-variant-numeric:tabular-nums}
+
+/* Brand bar */
+.brand{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:18px 10px;flex-wrap:wrap}
+.brand-id{display:flex;align-items:center;gap:12px}
+.logo-tile{display:flex;align-items:center;flex:none;padding-inline-end:14px;border-inline-end:1px solid var(--line)}
+.logo-tile img{height:64px;width:auto;display:block;filter:drop-shadow(0 0 14px #2BD4F033)}
+@media (max-width:620px){.logo-tile img{height:46px}}
+.brand-name{font-family:var(--display);font-weight:700;font-size:17px;line-height:1.2}
+.brand-name small{display:block;font-family:var(--body);font-weight:500;font-size:11.5px;color:var(--muted);letter-spacing:.06em}
+.brand-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;color:var(--muted);font-size:12.5px}
+.pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--bg2);border-radius:999px;padding:5px 11px;white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none}
+
+/* Hero */
+.hero{position:relative;border-radius:22px;overflow:hidden;min-height:190px;display:grid;align-items:end;border:1px solid var(--line)}
+.hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 40%;filter:saturate(.9)}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(270deg,#0A1430F2 0%,#0A1430CC 45%,#0A143055 100%)}
+.hero-in{position:relative;z-index:1;padding:26px 26px 22px;display:flex;justify-content:space-between;align-items:end;gap:18px;flex-wrap:wrap}
+.hero h1{font-family:var(--display);font-weight:800;font-size:clamp(26px,4.2vw,42px);line-height:1.15;margin:0 0 6px;text-wrap:balance}
+.hero p{margin:0;color:#C8D4F5;max-width:60ch}
+.ring-wrap{display:flex;align-items:center;gap:14px;background:#0A1430B3;border:1px solid var(--line);border-radius:18px;padding:12px 16px;backdrop-filter:blur(6px)}
+.ring-wrap b{font-family:var(--display);font-size:13px;font-weight:600;color:var(--muted);display:block}
+.ring-wrap span{font-size:12px;color:var(--dim)}
+
+/* KPIs */
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin-top:14px}
+.kpi{background:linear-gradient(160deg,var(--panel),var(--bg2));border:1px solid var(--line);border-radius:var(--r);padding:14px 14px 12px;position:relative;overflow:hidden;min-width:0}
+.kpi::before{content:"";position:absolute;inset-inline-start:-30px;top:-30px;width:90px;height:90px;border-radius:50%;background:var(--c);opacity:.16}
+.kpi .lbl{font-size:12px;color:var(--muted);font-weight:500}
+.kpi .val{font-family:var(--display);font-weight:800;font-size:30px;line-height:1.1;color:var(--c);margin-top:4px}
+.kpi .sub{font-size:11.5px;color:var(--dim);margin-top:2px}
+
+/* Insight row */
+.insights{display:grid;grid-template-columns:1.5fr 1fr;gap:12px;margin-top:12px}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:16px;min-width:0}
+.card h3{font-family:var(--display);font-weight:600;font-size:15px;margin:0 0 12px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card h3 small{font-family:var(--body);font-weight:400;font-size:12px;color:var(--dim)}
+.fbars{display:grid;gap:11px}
+.fbar{display:grid;grid-template-columns:minmax(0,190px) 1fr 46px;gap:10px;align-items:center;cursor:pointer;border-radius:8px}
+.fbar .n{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:7px}
+.fbar .t{height:12px;border-radius:99px;background:var(--line2);position:relative;overflow:hidden}
+.fbar .t i{position:absolute;inset-block:0;inset-inline-start:0;border-radius:99px;background:var(--c)}
+.fbar .p{font-family:var(--display);font-weight:700;font-size:13px;text-align:left}
+.fbar .cnt{color:var(--dim);font-size:11px}
+.stack{display:flex;height:16px;border-radius:99px;overflow:hidden;background:var(--line2);gap:2px}
+.stack i{display:block;height:100%}
+.legend{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 14px;margin-top:14px}
+.legend div{display:flex;align-items:center;gap:8px;font-size:13px}
+.legend b{font-family:var(--display);margin-inline-start:auto}
+.sw{width:10px;height:10px;border-radius:3px;flex:none}
+.alerts{margin-top:14px;display:grid;gap:6px}
+.alert{display:flex;gap:8px;align-items:center;font-size:12.5px;background:#F43F5E14;border:1px solid #F43F5E40;border-radius:10px;padding:7px 10px;cursor:pointer}
+.alert.ok{background:#22C55E12;border-color:#22C55E38}
+
+/* Toolbar */
+.toolbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;margin-top:18px;background:#0A1430EE;backdrop-filter:blur(8px);border-bottom:1px solid var(--line2);padding-block:10px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--bg)}
+.tb-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tabs{display:flex;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:3px;gap:2px}
+.tabs button{border:0;background:transparent;padding:7px 13px;border-radius:9px;color:var(--muted);font-weight:500;display:flex;align-items:center;gap:6px}
+.tabs button[aria-pressed="true"]{background:var(--panel2);color:var(--fg);box-shadow:inset 0 -2px 0 var(--accent)}
+.tabs svg{width:15px;height:15px}
+.search{flex:1 1 180px;min-width:0;display:flex;align-items:center;gap:6px;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:0 10px}
+.search input{border:0;background:transparent;padding:8px 0;width:100%;outline:none}
+.sel{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:8px 13px;font-weight:500;display:inline-flex;gap:6px;align-items:center;white-space:nowrap}
+.btn:hover{background:var(--panel2)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#04202A;font-weight:600}
+.btn.pri:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent}
+.btn.danger{border-color:#F43F5E66;color:#FDA4AF;background:transparent}
+.btn.danger.armed{background:var(--s-stuck);color:#fff}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.chip{border:1px solid var(--line);background:transparent;border-radius:999px;padding:5px 11px;font-size:12.5px;color:var(--muted);display:inline-flex;align-items:center;gap:6px}
+.chip[aria-pressed="true"]{background:color-mix(in srgb,var(--c,var(--accent)) 20%,transparent);border-color:var(--c,var(--accent));color:var(--fg)}
+
+/* Table view */
+.view{margin-top:14px}
+.group{margin-bottom:22px}
+.g-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.g-head .tg{border:0;background:transparent;color:var(--c);font-family:var(--display);font-weight:700;font-size:16px;display:flex;align-items:center;gap:8px;padding:2px 0}
+.g-head .tg svg{width:14px;height:14px;transition:transform .2s}
+.g-head .tg[aria-expanded="false"] svg{transform:rotate(90deg)}
+.g-head .meta{color:var(--dim);font-size:12px}
+.g-head .sp{flex:1}
+.tbl-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--bg2)}
+table{border-collapse:separate;border-spacing:0;width:100%;min-width:1080px}
+th,td{padding:9px 10px;text-align:start;border-bottom:1px solid var(--line2);white-space:nowrap;font-size:13px}
+th{font-weight:500;color:var(--dim);font-size:12px;background:var(--bg2)}
+tr:last-child td{border-bottom:0}
+tbody tr{cursor:pointer}
+tbody tr:hover td{background:#18295A}
+td.name,th.name{position:sticky;inset-inline-start:0;z-index:1;background:var(--bg2);min-width:240px;max-width:300px;border-inline-start:4px solid var(--c);box-shadow:-1px 0 0 var(--line2)}
+th.name{border-inline-start-color:transparent}
+td.name .nm{font-weight:600;white-space:normal;line-height:1.35}
+td.name .ds{color:var(--dim);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px}
+.status{display:inline-flex;justify-content:center;align-items:center;min-width:112px;padding:6px 10px;border-radius:8px;font-weight:600;font-size:12.5px;color:#fff;border:0;background:var(--sc)}
+.status.light{color:#0A1430}
+.prog{display:flex;align-items:center;gap:8px;min-width:130px}
+.prog .t{flex:1;height:8px;border-radius:99px;background:var(--line2);overflow:hidden;position:relative}
+.prog .t i{position:absolute;inset-block:0;inset-inline-start:0;background:var(--c);border-radius:99px}
+.prog b{font-family:var(--display);font-weight:700;font-size:12.5px;min-width:34px}
+.var{font-size:11.5px;padding:3px 8px;border-radius:6px;font-weight:600}
+.var.bad{background:#F43F5E26;color:#FDA4AF}
+.var.good{background:#22C55E22;color:#86EFAC}
+.var.neu{background:#7B8AB022;color:var(--muted)}
+.thumbs{display:flex}
+.thumbs img{width:30px;height:30px;border-radius:7px;object-fit:cover;border:2px solid var(--bg2);margin-inline-start:-8px}
+.thumbs img:first-child{margin-inline-start:0}
+.g-foot td{background:var(--bg);color:var(--dim);font-size:12px}
+.g-foot .stack{height:10px;min-width:120px}
+.add-row td{color:var(--dim)}
+.add-row td button{border:0;background:transparent;color:var(--muted);padding:2px 0}
+.add-row td button:hover{color:var(--accent)}
+
+/* Kanban */
+.kanban{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(260px,1fr);gap:12px;overflow-x:auto;padding-bottom:8px}
+.col{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:10px;min-width:0}
+.col h4{margin:2px 4px 10px;font-family:var(--display);font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px}
+.col h4 .c{margin-inline-start:auto;color:var(--dim);font-family:var(--body);font-weight:400;font-size:12px}
+.kc{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:10px;cursor:pointer;display:block;width:100%;text-align:start;padding:0}
+.kc:hover{border-color:var(--c)}
+.kc img{width:100%;height:120px;object-fit:cover;display:block}
+.kc .in{padding:10px 12px;display:grid;gap:7px}
+.kc .fac{font-size:11px;color:var(--c);font-weight:600}
+.kc .tt{font-weight:600;line-height:1.35}
+.kc .row{display:flex;justify-content:space-between;color:var(--dim);font-size:11.5px}
+
+/* Timeline */
+.tl-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--bg2)}
+.tl{position:relative;min-width:var(--w)}
+.tl-head{display:flex;position:sticky;top:0;background:var(--panel);border-bottom:1px solid var(--line);height:44px}
+.tl-lbl{width:230px;flex:none;position:sticky;inset-inline-start:0;background:inherit;z-index:3;border-inline-end:1px solid var(--line);padding:6px 12px;display:flex;align-items:center;font-size:12.5px}
+.tl-grid{position:relative;flex:1}
+.wk{position:absolute;top:0;bottom:0;border-inline-start:1px solid var(--line2);padding:5px 8px;font-size:11px;color:var(--muted);white-space:nowrap}
+.wk b{display:block;color:var(--fg);font-family:var(--display);font-weight:600;font-size:11.5px}
+.tl-row{display:flex;border-bottom:1px solid var(--line2);min-height:48px;cursor:pointer}
+.tl-row:hover{background:#18295A}
+.tl-row .tl-lbl{background:var(--bg2);flex-direction:column;align-items:flex-start;justify-content:center;gap:1px}
+.tl-row:hover .tl-lbl{background:#18295A}
+.tl-lbl small{color:var(--dim);font-size:11px}
+.tl-gr{background:var(--bg);color:var(--c);font-family:var(--display);font-weight:600;font-size:13px;min-height:36px}
+.tl-gr .tl-lbl{background:var(--bg)}
+.bar{position:absolute;top:11px;height:26px;border-radius:8px;background:color-mix(in srgb,var(--c) 28%,transparent);border:1px solid var(--c);overflow:hidden;display:flex;align-items:center}
+.bar i{position:absolute;inset-block:0;inset-inline-start:0;background:var(--c);opacity:.85}
+.bar span{position:relative;z-index:1;padding:0 8px;font-size:11.5px;font-weight:600;white-space:nowrap;color:#fff;text-shadow:0 1px 2px #0008}
+.today{position:absolute;top:0;bottom:0;width:2px;background:var(--s-stuck);z-index:2}
+.today::before{content:"اليوم";position:absolute;top:2px;inset-inline-start:4px;font-size:10px;color:#FDA4AF;white-space:nowrap}
+
+/* Gallery */
+.gal-sec{margin-bottom:22px}
+.gal-sec h4{font-family:var(--display);font-weight:600;font-size:15px;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+.gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+.ph{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--line);aspect-ratio:4/3;background:var(--panel);padding:0;max-width:100%}
+.ph img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s}
+.ph:hover img{transform:scale(1.04)}
+.tag{position:absolute;top:8px;inset-inline-start:8px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:6px;color:#fff;background:var(--tc,#334)}
+
+/* Drawer */
+.scrim{position:fixed;inset:0;background:#030816B3;z-index:40;backdrop-filter:blur(2px)}
+.drawer{position:fixed;top:0;bottom:0;inset-inline-end:0;width:min(560px,100%);z-index:41;background:var(--bg2);border-inline-start:1px solid var(--line);display:flex;flex-direction:column;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px)}
+.dr-cover{height:150px;flex:none;position:relative;background:var(--panel)}
+.dr-cover img{width:100%;height:100%;object-fit:cover}
+.dr-cover::after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,var(--bg2),transparent 70%)}
+.dr-x{position:absolute;top:10px;inset-inline-start:10px;z-index:2;width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:#0A1430CC;display:grid;place-items:center}
+.dr-body{overflow-y:auto;padding:4px 20px 30px;display:grid;gap:18px}
+.dr-title{font-family:var(--display);font-weight:700;font-size:21px;width:100%;background:transparent;border:1px solid transparent;border-radius:8px;padding:4px 6px;margin-inline-start:-6px}
+.dr-title:hover,.dr-title:focus{border-color:var(--line);background:var(--bg)}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px}
+.f label{display:block;font-size:11.5px;color:var(--dim);margin-bottom:4px}
+.f input,.f select,.f textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px 10px}
+.f textarea{min-height:76px;resize:vertical}
+.f.full{grid-column:1/-1}
+input[type=range]{accent-color:var(--accent);padding:0;border:0;background:transparent}
+.sec-t{font-family:var(--display);font-weight:600;font-size:14px;margin:0 0 8px;display:flex;justify-content:space-between;align-items:center}
+.sec-t small{font-family:var(--body);font-weight:400;color:var(--dim);font-size:12px}
+.tasks{display:grid;gap:6px}
+.task{display:flex;align-items:center;gap:9px;background:var(--bg);border:1px solid var(--line2);border-radius:9px;padding:7px 10px}
+.task input[type=checkbox]{width:18px;height:18px;accent-color:var(--s-done);flex:none}
+.task span{flex:1;min-width:0}
+.task.done span{color:var(--dim);text-decoration:line-through}
+.task .rm{border:0;background:transparent;color:var(--dim);padding:2px 6px;border-radius:6px}
+.task .rm:hover{color:#FDA4AF}
+.addline{display:flex;gap:8px;margin-top:6px}
+.addline input{flex:1;min-width:0;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px 10px}
+.dr-gal{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.dr-gal .ph{aspect-ratio:1}
+.dr-gal .rmph{position:absolute;bottom:6px;inset-inline-end:6px;border:0;background:#0A1430CC;color:#FDA4AF;border-radius:6px;font-size:11px;padding:2px 7px}
+.upl{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
+.upd{display:grid;gap:8px}
+.u{background:var(--bg);border:1px solid var(--line2);border-radius:10px;padding:9px 11px}
+.u .h{display:flex;justify-content:space-between;color:var(--dim);font-size:11.5px;margin-bottom:3px}
+.u p{margin:0;white-space:pre-wrap}
+.statusmenu{position:fixed;z-index:60;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px;display:grid;gap:4px;box-shadow:0 20px 40px #0008;min-width:150px}
+.statusmenu button{border:0}
+
+/* Modal, lightbox, toast, states */
+.modal{position:fixed;z-index:50;inset:0;display:grid;place-items:center;padding:16px}
+.modal .box{background:var(--bg2);border:1px solid var(--line);border-radius:18px;padding:20px;width:min(440px,100%);display:grid;gap:14px}
+.modal h3{margin:0;font-family:var(--display);font-weight:700;font-size:18px}
+.swatches{display:flex;gap:8px;flex-wrap:wrap}
+.swatches button{width:30px;height:30px;border-radius:50%;border:2px solid transparent;background:var(--c)}
+.swatches button[aria-pressed="true"]{border-color:#fff}
+.lb{position:fixed;inset:0;z-index:70;background:#030816F2;display:grid;grid-template-rows:auto 1fr auto;padding:calc(12px + env(safe-area-inset-top,0px)) 16px calc(12px + env(safe-area-inset-bottom,0px))}
+.lb img{max-width:100%;max-height:100%;object-fit:contain;margin:auto;border-radius:10px;min-height:0}
+.lb .bar2{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.toast{position:fixed;z-index:80;bottom:calc(18px + env(safe-area-inset-bottom,0px));inset-inline-start:50%;transform:translateX(50%);background:var(--panel2);border:1px solid var(--line);padding:9px 16px;border-radius:10px;font-size:13px}
+.empty{border:1px dashed var(--line);border-radius:var(--r);padding:34px 20px;text-align:center;color:var(--muted);display:grid;gap:10px;justify-items:center}
+.empty b{font-family:var(--display);color:var(--fg);font-size:16px}
+.note{font-size:12px;color:var(--dim)}
+.foot{margin-top:26px;color:var(--dim);font-size:12px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+
+@media (max-width:1100px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.insights{grid-template-columns:1fr}}
+@media (max-width:620px){
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kpi .val{font-size:25px}
+  .hero-in{padding:18px}
+  .fbar{grid-template-columns:minmax(0,120px) 1fr 40px}
+  .fields{grid-template-columns:1fr}
+  .tabs button span{display:none}
+  .tl-lbl{width:150px}
+  td.name,th.name{min-width:190px}
+  .legend{grid-template-columns:1fr}
+}
+.ro .add-row,.ro [data-editfac],.ro #tkForm,.ro #upForm,.ro #syncProg,.ro #delProj,.ro .rmph,.ro .task .rm,.ro #uplBox,.ro .dr-body .note+p{display:none!important}
+.ro [data-status]{pointer-events:none}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head><body>
+
+
+<div class="wrap">
+  <header class="brand">
+    <div class="brand-id">
+      <span class="logo-tile"><img src="img/logo-dark.png?v=3" alt="شعار تجمع الطائف الصحي"></span>
+      <div class="brand-name">مشاريع التحسين<small>الإدارة التنفيذية للتشغيل</small></div>
+    </div>
+    <div class="brand-meta">
+      <span class="pill"><span class="dot"></span><span id="today"></span></span>
+      <span class="pill" id="sync">جارٍ الاتصال…</span>
+    </div>
+  </header>
+
+  <section class="hero">
+    <img src="img/cover.jpg" alt="مدخل مستشفى الملك عبدالعزيز التخصصي بالطائف">
+    <div class="hero-in">
+      <div>
+        <h1>لوحة متابعة مشاريع التحسين</h1>
+        <p>متابعة حيّة لمشاريع تحسين المرافق في منشآت التجمع: الحالة، نسب الإنجاز، الجدول الزمني، وصور قبل وبعد. مرفوعة إلى العمليات والخدمات.</p>
+      </div>
+      <div class="ring-wrap"><svg id="ring" width="74" height="74" viewBox="0 0 74 74" aria-hidden="true"></svg><div><b>متوسط الإنجاز</b><span id="ringSub"></span></div></div>
+    </div>
+  </section>
+
+  <section class="kpis" id="kpis"></section>
+
+  <section class="insights">
+    <div class="card"><h3>الإنجاز حسب المنشأة <small>اضغط على منشأة لتصفية المشاريع</small></h3><div class="fbars" id="fbars"></div></div>
+    <div class="card"><h3>توزيع الحالات <small id="stCount"></small></h3><div class="stack" id="stStack" style="height:16px"></div><div class="legend" id="stLegend"></div><div class="alerts" id="alerts"></div></div>
+  </section>
+
+  <nav class="toolbar" aria-label="أدوات العرض">
+    <div class="tb-row">
+      <div class="tabs" role="group" aria-label="طريقة العرض">
+        <button id="v-table" data-v="table"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1.5" y="2.5" width="13" height="11" rx="2"/><path d="M1.5 6.5h13M1.5 10h13"/></svg><span>الجدول</span></button>
+        <button id="v-kanban" data-v="kanban"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1.5" y="2" width="3.6" height="12" rx="1.2"/><rect x="6.2" y="2" width="3.6" height="8" rx="1.2"/><rect x="10.9" y="2" width="3.6" height="10" rx="1.2"/></svg><span>كانبان</span></button>
+        <button id="v-timeline" data-v="timeline"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 4h7M5 8h8M3 12h6"/></svg><span>الجدول الزمني</span></button>
+        <button id="v-gallery" data-v="gallery"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1.5" y="2.5" width="13" height="11" rx="2"/><circle cx="5.5" cy="6.5" r="1.4"/><path d="m2 12 4-3.5 3 2.5 2-1.5 3.5 3"/></svg><span>الصور</span></button>
+      </div>
+      <label class="search"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3.5 3.5"/></svg><input id="q" type="search" placeholder="ابحث عن مشروع أو مسؤول"></label>
+      <select id="fStatus" class="sel" aria-label="تصفية حسب الحالة"></select>
+      <button class="btn pri" id="addProj">+ مشروع</button>
+      <button class="btn" id="addFac">+ منشأة</button>
+      <button class="btn ghost" id="exportBtn" hidden>تصدير Excel</button>
+    </div>
+    <div class="chips" id="chips"></div>
+  </nav>
+
+  <main class="view" id="view"></main>
+
+  <footer class="foot"><span>تجمع الطائف الصحي · الإدارة التنفيذية للتشغيل</span><span>التواريخ بالتقويم الميلادي · تُحفظ التعديلات تلقائياً لكل من يفتح اللوحة</span></footer>
+</div>
+
+<div id="layer"></div>
+<script type="application/json" id="snap">{"fac": [{"color": "#F472B6", "name": "مركز طب الأسنان التخصصي", "order": 5, "sub": "", "id": "dental"}, {"color": "#34D399", "name": "مجمع إرادة والصحة النفسية", "order": 4, "sub": "", "id": "eradah"}, {"color": "#2BD4F0", "name": "مستشفى الملك عبدالعزيز التخصصي", "order": 1, "sub": "", "id": "kash"}, {"color": "#F5A524", "name": "مستشفى الملك فيصل", "order": 3, "sub": "", "id": "kfh"}], "proj": [{"cover": "", "desc": "تضمين هوية الصحة القابضة في العيادات.", "end": "", "fid": "dental", "name": "مشروع عيادتي", "order": 1, "owner": "", "photos": [], "progress": 0, "start": "", "status": "todo", "tasks": [], "updatedAt": 1793602463755, "updates": [], "id": "dental-clinics"}, {"cover": "", "desc": "تضمين هوية الصحة القابضة في العيادات.", "end": "", "fid": "eradah", "name": "مشروع عيادتي", "order": 1, "owner": "", "photos": [], "progress": 0, "start": "", "status": "todo", "tasks": [], "updatedAt": 1793602463755, "updates": [], "id": "eradah-clinics"}, {"cover": "img/er_cover.jpg", "desc": "معالجة ملاحظات الموقع من خلال خمسة أعمال تحسين، ومتوقع إنهاؤها خلال أسبوعين.", "end": "2026-11-14", "fid": "kash", "name": "مشروع تحسين الطوارئ", "order": 4, "owner": "", "photos": [{"label": "صورة المشروع", "src": "img/er_cover.jpg"}, {"label": "قبل", "src": "img/er_b1.jpg"}, {"label": "قبل", "src": "img/er_b2.jpg"}, {"label": "قبل", "src": "img/er_b3.jpg"}, {"label": "قبل", "src": "img/er_b4.jpg"}, {"label": "قبل", "src": "img/er_b5.jpg"}, {"label": "قبل", "src": "img/er_b6.jpg"}, {"label": "قبل", "src": "img/er_b7.jpg"}, {"label": "قبل", "src": "img/er_b8.jpg"}, {"label": "قبل", "src": "img/er_b9.jpg"}, {"label": "قبل", "src": "img/er_b10.jpg"}], "progress": 50, "start": "2026-11-01", "status": "prog", "tasks": [{"done": false, "id": "t8", "t": "تغيير الفينيل للمداخل", "when": "الأسبوعان 1–2"}, {"done": false, "id": "t9", "t": "تغيير أرضيات غرفة التمريض (باركيه)", "when": "الأسبوعان 1–2"}, {"done": false, "id": "t10", "t": "تجديد العلامات الأرضية", "when": "الأسبوعان 1–2"}, {"done": false, "id": "t11", "t": "تنجيد مقاعد الانتظار", "when": "الأسبوعان 1–2"}, {"done": false, "id": "t12", "t": "تحسين مظهر الجدران والستائر", "when": "الأسبوعان 1–2"}], "updatedAt": 1793602463755, "updates": [], "id": "kash-er"}, {"cover": "img/px_a1.jpg", "desc": "اكتمال أعمال الإضاءة والدهانات والتركيبات، ومتبقٍ ملصقات الهوية الجديدة للصحة القابضة وبعض الإكسسوارات.", "end": "2026-11-07", "fid": "kash", "name": "تحسين غرفة الباكس", "order": 3, "owner": "", "photos": [{"label": "صورة المشروع", "src": "img/px_cover.jpg"}, {"label": "قبل", "src": "img/px_b1.jpg"}, {"label": "قبل", "src": "img/px_b2.jpg"}, {"label": "بعد", "src": "img/px_a1.jpg"}, {"label": "بعد", "src": "img/px_a2.jpg"}], "progress": 95, "start": "2026-11-01", "status": "final", "tasks": [{"done": true, "id": "t5", "t": "الأرضيات والإضاءة والأثاث", "when": "منجز"}, {"done": false, "id": "t6", "t": "تركيب ملصقات الهوية الجديدة للصحة القابضة", "when": "الأسبوع 1"}, {"done": false, "id": "t7", "t": "تركيب إكسسوارات بسيطة", "when": "الأسبوع 1"}], "updatedAt": 1793602463755, "updates": [], "id": "kash-pacs"}, {"cover": "img/st_cover.jpg", "desc": "استكمال الأعمال المدنية ثم تركيب السقف، وبعدها تركيب أجهزة التعقيم وتشغيلها.", "end": "2026-12-12", "fid": "kash", "name": "تطوير التعقيم المركزي", "order": 1, "owner": "", "photos": [{"label": "صورة المشروع", "src": "img/st_cover.jpg"}, {"label": "قبل", "src": "img/st_b1.jpg"}, {"label": "قبل", "src": "img/st_b2.jpg"}, {"label": "الأجهزة سابقاً", "src": "img/st_d1.jpg"}, {"label": "الأجهزة سابقاً", "src": "img/st_d2.jpg"}, {"label": "أثناء التنفيذ", "src": "img/st_w1.jpg"}, {"label": "أثناء التنفيذ", "src": "img/st_w2.jpg"}], "progress": 40, "start": "2026-11-01", "status": "prog", "tasks": [{"done": false, "id": "t1", "t": "استكمال الأعمال المدنية", "when": "الأسابيع 1–4"}, {"done": false, "id": "t2", "t": "تركيب السقف بعد الأعمال المدنية", "when": "الأسبوع 5"}, {"done": false, "id": "t3", "t": "تركيب أجهزة التعقيم", "when": "الأسبوع 6"}, {"done": false, "id": "t4", "t": "تشغيل أجهزة التعقيم", "when": "الأسبوع 6"}], "updatedAt": 1793602463755, "updates": [], "id": "kash-sterile"}, {"cover": "", "desc": "تضمين هوية الصحة القابضة في العيادات.", "end": "", "fid": "kfh", "name": "مشروع عيادتي", "order": 1, "owner": "", "photos": [], "progress": 0, "start": "", "status": "todo", "tasks": [], "updatedAt": 1793602463755, "updates": [], "id": "kfh-1"}, {"cover": "", "desc": "تحسين الأرصفة والزراعة.", "end": "", "fid": "kfh", "name": "تحسين البيئة الخارجية", "order": 2, "owner": "", "photos": [], "progress": 0, "start": "", "status": "todo", "tasks": [], "updatedAt": 1793602463755, "updates": [], "id": "kfh-2"}, {"cover": "", "desc": "تغيير أرضيات الفينيل في الطوارئ والعناية المركزة.", "end": "", "fid": "kfh", "name": "فينيل الطوارئ والعناية المركزة", "order": 3, "owner": "", "photos": [], "progress": 0, "start": "", "status": "todo", "tasks": [], "updatedAt": 1793602463755, "updates": [], "id": "kfh-3"}, {"cover": "", "desc": "", "end": "", "fid": "kfh", "name": "تحسين المختبر", "order": 4, "owner": "", "photos": [], "progress": 0, "start": "", "status": "todo", "tasks": [], "updatedAt": 1793602463755, "updates": [], "id": "kfh-4"}, {"cover": "", "desc": "", "end": "", "fid": "kfh", "name": "تحسين التعقيم", "order": 5, "owner": "", "photos": [], "progress": 0, "start": "", "status": "todo", "tasks": [], "updatedAt": 1793602463755, "updates": [], "id": "kfh-5"}, {"cover": "", "desc": "", "end": "", "fid": "kfh", "name": "تحسين التغذية", "order": 6, "owner": "", "photos": [], "progress": 0, "start": "", "status": "todo", "tasks": [], "updatedAt": 1793602463755, "updates": [], "id": "kfh-6"}, {"cover": "img/cl_cover.jpg", "desc": "تضمين الهوية للصحة القابضة في 10 عيادات جديدة بمركز الأورام: عيادة مكتملة، والتسع المتبقية على ثلاث مراحل بواقع 3 عيادات لكل مرحلة.", "end": "2026-12-12", "fid": "kash", "name": "مشروع عيادتي – مركز الأورام", "order": 2, "owner": "", "photos": [{"label": "بعد", "src": "img/cl_cover.jpg"}, {"label": "قبل", "src": "img/cl_b1.jpg"}, {"label": "قبل", "src": "img/cl_b2.jpg"}, {"label": "بعد", "src": "img/cl_a1.jpg"}, {"label": "بعد", "src": "img/cl_a2.jpg"}], "progress": 10, "start": "2026-11-01", "status": "prog", "tasks": [{"done": true, "id": "t13", "t": "العيادة 1 مكتملة بالكامل", "when": "منجز"}, {"done": false, "id": "t14", "t": "المرحلة 1 · العيادات 2–4", "when": "الأسبوعان 1–2"}, {"done": false, "id": "t15", "t": "المرحلة 2 · العيادات 5–7", "when": "الأسبوعان 3–4"}, {"done": false, "id": "t16", "t": "المرحلة 3 · العيادات 8–10", "when": "الأسبوعان 5–6"}], "updatedAt": 1793602463755, "updates": [], "id": "onco-clinics"}]}</script>
+
+
+<script>
+(function(){
+const STATUS=[
+  {k:'todo',n:'لم يبدأ',c:'var(--s-todo)'},
+  {k:'prog',n:'قيد التنفيذ',c:'var(--s-prog)',light:1},
+  {k:'final',n:'لمسات نهائية',c:'var(--s-final)',light:1},
+  {k:'stuck',n:'متعثر',c:'var(--s-stuck)'},
+  {k:'done',n:'مكتمل',c:'var(--s-done)'}
+];
+const SMAP=Object.fromEntries(STATUS.map(s=>[s.k,s]));
+const PALETTE=['#2BD4F0','#A78BFA','#F5A524','#34D399','#F472B6','#60A5FA','#FB7185','#FACC15','#2DD4BF'];
+const TAGS={'قبل':'#9F1239','بعد':'#3F6212','أثناء التنفيذ':'#B45309','الأجهزة سابقاً':'#7F1D1D','صورة المشروع':'#1E3A8A'};
+const PHOTO_LABELS=['قبل','أثناء التنفيذ','بعد','صورة المشروع'];
+
+const S={fac:[],proj:[],view:'table',fFac:'all',fStatus:'all',q:'',collapsed:{},openId:null,loaded:false,db:null,assets:null,downloads:null,user:null,myId:null,names:{}};
+try{const p=JSON.parse(localStorage.getItem('thc-board')||'{}');Object.assign(S,{view:p.view||'table',fFac:p.fFac||'all',fStatus:p.fStatus||'all',collapsed:p.collapsed||{}})}catch(e){}
+function remember(){try{localStorage.setItem('thc-board',JSON.stringify({view:S.view,fFac:S.fFac,fStatus:S.fStatus,collapsed:S.collapsed}))}catch(e){}}
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const DF=new Intl.DateTimeFormat('ar-SA-u-ca-gregory-nu-latn',{day:'numeric',month:'long',year:'numeric'});
+const DS=new Intl.DateTimeFormat('ar-SA-u-ca-gregory-nu-latn',{day:'numeric',month:'short'});
+const toD=s=>{if(!s)return null;const d=new Date(s+'T00:00:00');return isNaN(d)?null:d};
+const fmt=s=>{const d=toD(s);return d?DF.format(d):'—'};
+const TODAY=new Date();TODAY.setHours(0,0,0,0);
+const uid=()=>Math.random().toString(36).slice(2,10);
+$('#today').textContent=DF.format(TODAY);
+
+function facOf(p){return S.fac.find(f=>f.id===p.fid)||{name:'بدون منشأة',color:'#7B8AB0',id:''}}
+function expected(p){const a=toD(p.start),b=toD(p.end);if(!a||!b||b<=a)return null;return Math.max(0,Math.min(100,Math.round((TODAY-a)/(b-a)*100)))}
+function variance(p){if(p.status==='done')return{cls:'good',t:'مكتمل'};const e=expected(p);if(e==null)return{cls:'neu',t:'بدون خطة'};const d=(p.progress||0)-e;if(d<-10)return{cls:'bad',t:'متأخر '+Math.abs(d)+'%'};if(d>10)return{cls:'good',t:'متقدم '+d+'%'};return{cls:'neu',t:'حسب الخطة'}}
+function daysLeft(p){const b=toD(p.end);if(!b)return null;return Math.round((b-TODAY)/864e5)}
+function photos(p){return Array.isArray(p.photos)?p.photos:[]}
+function cover(p){return p.cover||photos(p)[0]?.src||''}
+function visible(){const q=S.q.trim();return S.proj.filter(p=>(S.fFac==='all'||p.fid===S.fFac)&&(S.fStatus==='all'||p.status===S.fStatus)&&(!q||(p.name+' '+(p.owner||'')+' '+(p.desc||'')+' '+facOf(p).name).includes(q)))}
+function avg(list){return list.length?Math.round(list.reduce((a,p)=>a+(+p.progress||0),0)/list.length):0}
+function sorted(list){return list.slice().sort((a,b)=>(a.order??0)-(b.order??0)||String(a.name).localeCompare(b.name,'ar'))}
+function facsSorted(){return S.fac.slice().sort((a,b)=>(a.order??0)-(b.order??0))}
+
+/* ---------- writes ---------- */
+const chains={};
+function save(id,patch){
+  const p=S.proj.find(x=>x.id===id);if(p)Object.assign(p,patch);
+  renderAll();
+  if(!S.db){toast('التعديل لم يُحفظ: سجّل الدخول لحفظ التغييرات');return Promise.resolve()}
+  patch.updatedAt=Date.now();
+  chains[id]=(chains[id]||Promise.resolve()).then(()=>S.db.collection('projects').doc(id).update(patch)).catch(e=>{toast(e&&e.code==='permission_denied'?'ليس لديك صلاحية التعديل على هذه اللوحة':'تعذّر الحفظ، حاول مرة أخرى')});
+  return chains[id];
+}
+async function createProject(fid){
+  if(!S.db){toast('سجّل الدخول لإضافة مشاريع');return}
+  const ref=S.db.collection('projects').doc();
+  const start=TODAY.toISOString().slice(0,10);
+  const data={fid:fid||(facsSorted()[0]?.id||''),name:'مشروع جديد',desc:'',status:'todo',progress:0,start,end:'',owner:'',cover:'',photos:[],tasks:[],updates:[],order:Date.now(),updatedAt:Date.now()};
+  try{await ref.set(data);S.proj.push({id:ref.id,...data});openDrawer(ref.id,true)}catch(e){toast('تعذّرت إضافة المشروع')}
+}
+
+/* ---------- KPIs & insights ---------- */
+function ringSVG(v){const r=30,C=2*Math.PI*r,o=C*(1-v/100);return `<circle cx="37" cy="37" r="${r}" fill="none" stroke="#24386F" stroke-width="8"/><circle cx="37" cy="37" r="${r}" fill="none" stroke="#2BD4F0" stroke-width="8" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${o}" transform="rotate(-90 37 37)"/><text x="37" y="43" text-anchor="middle" font-family="Alexandria,sans-serif" font-weight="800" font-size="17" fill="#EEF3FF">${v}%</text>`}
+function renderSummary(){
+  const all=S.proj.filter(p=>S.fFac==='all'||p.fid===S.fFac);
+  const a=avg(all),late=all.filter(p=>variance(p).cls==='bad').length;
+  const cnt=k=>all.filter(p=>p.status===k).length;
+  const soon=all.filter(p=>{const d=daysLeft(p);return d!=null&&d>=0&&d<=14&&p.status!=='done'}).length;
+  $('#ring').innerHTML=ringSVG(a);
+  $('#ringSub').textContent=(S.fFac==='all'?'كل المنشآت':facOf({fid:S.fFac}).name)+' · '+all.length+' مشروع';
+  const k=[
+    {l:'إجمالي المشاريع',v:all.length,s:S.fFac==='all'?S.fac.length+' منشآت':'في المنشأة المختارة',c:'#2BD4F0'},
+    {l:'متوسط الإنجاز',v:a+'%',s:'لكل المشاريع المعروضة',c:'#7C8CFF'},
+    {l:'قيد التنفيذ',v:cnt('prog'),s:'مشاريع جارية',c:'#F5A524'},
+    {l:'لمسات نهائية',v:cnt('final'),s:'قريبة من التسليم',c:'#38BDF8'},
+    {l:'مكتمل',v:cnt('done'),s:'تم التسليم',c:'#22C55E'},
+    {l:'متأخر عن الخطة',v:late,s:soon+' ينتهي خلال 14 يوماً',c:'#F43F5E'}
+  ];
+  $('#kpis').innerHTML=k.map(x=>`<div class="kpi" style="--c:${x.c}"><div class="lbl">${x.l}</div><div class="val tab-num">${x.v}</div><div class="sub">${x.s}</div></div>`).join('');
+  $('#fbars').innerHTML=facsSorted().map(f=>{const ps=S.proj.filter(p=>p.fid===f.id),v=avg(ps);return `<div class="fbar" style="--c:${f.color}" data-f="${f.id}" role="button" tabindex="0"><div class="n"><span class="sw" style="background:${f.color}"></span>${esc(f.name)} <span class="cnt">${ps.length}</span></div><div class="t"><i style="width:${v}%"></i></div><div class="p tab-num">${v}%</div></div>`}).join('')||'<div class="note">لا توجد منشآت بعد.</div>';
+  $('#stCount').textContent=all.length+' مشروع';
+  $('#stStack').innerHTML=STATUS.map(s=>{const n=cnt(s.k);return n?`<i style="flex:${n};background:${s.c}" title="${s.n}: ${n}"></i>`:''}).join('');
+  $('#stLegend').innerHTML=STATUS.map(s=>`<div><span class="sw" style="background:${s.c}"></span>${s.n}<b class="tab-num">${cnt(s.k)}</b></div>`).join('');
+  const lateList=all.filter(p=>variance(p).cls==='bad').slice(0,3);
+  $('#alerts').innerHTML=lateList.length?lateList.map(p=>`<div class="alert" data-open="${p.id}" role="button" tabindex="0"><span class="sw" style="background:var(--s-stuck)"></span><span>${esc(p.name)} — ${esc(facOf(p).name)}</span><b style="margin-inline-start:auto;color:#FDA4AF">${variance(p).t}</b></div>`).join(''):(all.length?'<div class="alert ok"><span class="sw" style="background:var(--s-done)"></span>كل المشاريع المخطط لها تسير حسب الجدول أو متقدمة</div>':'');
+}
+
+/* ---------- toolbar ---------- */
+function renderToolbar(){
+  document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.view));
+  $('#fStatus').innerHTML='<option value="all">كل الحالات</option>'+STATUS.map(s=>`<option value="${s.k}" ${S.fStatus===s.k?'selected':''}>${s.n}</option>`).join('');
+  $('#chips').innerHTML=`<button class="chip" data-f="all" aria-pressed="${S.fFac==='all'}">كل المنشآت</button>`+facsSorted().map(f=>`<button class="chip" style="--c:${f.color}" data-f="${f.id}" aria-pressed="${S.fFac===f.id}"><span class="sw" style="background:${f.color}"></span>${esc(f.name)}</button>`).join('');
+}
+
+/* ---------- views ---------- */
+function statusBtn(p){const s=SMAP[p.status]||SMAP.todo;return `<button class="status ${s.light?'light':''}" style="--sc:${s.c}" data-status="${p.id}">${s.n}</button>`}
+function progCell(p,c){return `<div class="prog" style="--c:${c}"><div class="t"><i style="width:${p.progress||0}%"></i></div><b class="tab-num">${p.progress||0}%</b></div>`}
+function thumbs(p){const ph=photos(p).slice(0,3);return ph.length?`<div class="thumbs">${ph.map(x=>`<img src="${esc(x.src)}" alt="" loading="lazy">`).join('')}</div>`:'<span class="note">—</span>'}
+function emptyState(){
+  if(!S.loaded)return `<div class="empty"><b>جارٍ تحميل المشاريع…</b><span>تظهر المنشآت والمشاريع هنا خلال لحظات.</span></div>`;
+  if(!S.db)return `<div class="empty"><b>سجّل الدخول لعرض اللوحة</b><span>بيانات المشاريع محفوظة في اللوحة المشتركة وتظهر لمن سجّل الدخول إلى claude.ai وأُتيحت له.</span></div>`;
+  if(!S.fac.length)return `<div class="empty"><b>ابدأ بإضافة منشأة</b><span>أضف منشأة مثل مستشفى أو مركز، ثم أضف مشاريعها وتابع الإنجاز والصور.</span><button class="btn pri" data-act="addFac">+ إضافة منشأة</button></div>`;
+  return `<div class="empty"><b>لا توجد مشاريع تطابق التصفية</b><span>غيّر المنشأة أو الحالة أو كلمة البحث.</span><button class="btn" data-act="clear">إظهار الكل</button></div>`;
+}
+function renderTable(){
+  const vis=visible();
+  const facs=facsSorted().filter(f=>S.fFac==='all'||f.id===S.fFac);
+  if(!facs.length)return emptyState();
+  return facs.map(f=>{
+    const ps=sorted(vis.filter(p=>p.fid===f.id));
+    if(!ps.length&&(S.q||S.fStatus!=='all'))return '';
+    const all=S.proj.filter(p=>p.fid===f.id),open=!S.collapsed[f.id];
+    const st=STATUS.map(s=>{const n=ps.filter(p=>p.status===s.k).length;return n?`<i style="flex:${n};background:${s.c}"></i>`:''}).join('');
+    return `<section class="group" style="--c:${f.color}">
+      <div class="g-head"><button class="tg" data-col="${f.id}" aria-expanded="${open}"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 6 4 4 4-4"/></svg>${esc(f.name)}</button>
+      <span class="meta">${all.length} مشروع · متوسط الإنجاز ${avg(all)}%${f.sub?' · '+esc(f.sub):''}</span><span class="sp"></span>
+      <button class="btn ghost" data-editfac="${f.id}" style="padding:5px 10px;font-size:12px">تعديل المنشأة</button></div>
+      ${open?`<div class="tbl-scroll"><table><thead><tr><th class="name">المشروع</th><th>الحالة</th><th>نسبة الإنجاز</th><th>مقارنة بالخطة</th><th>البداية</th><th>النهاية</th><th>المتبقي</th><th>المسؤول</th><th>المهام</th><th>الصور</th></tr></thead><tbody>
+      ${ps.map(p=>{const v=variance(p),dl=daysLeft(p),tk=p.tasks||[];return `<tr data-open="${p.id}"><td class="name"><div class="nm">${esc(p.name)}</div><div class="ds">${esc(p.desc||'')}</div></td><td>${statusBtn(p)}</td><td>${progCell(p,f.color)}</td><td><span class="var ${v.cls}">${v.t}</span></td><td class="tab-num">${fmt(p.start)}</td><td class="tab-num">${fmt(p.end)}</td><td class="tab-num">${dl==null?'—':p.status==='done'?'—':dl<0?`<span style="color:#FDA4AF">تجاوز ${-dl} يوم</span>`:dl+' يوم'}</td><td>${esc(p.owner||'—')}</td><td class="tab-num">${tk.length?tk.filter(t=>t.done).length+'/'+tk.length:'—'}</td><td>${thumbs(p)}</td></tr>`}).join('')}
+      <tr class="add-row"><td class="name"><button data-addin="${f.id}">+ إضافة مشروع</button></td><td colspan="9"></td></tr>
+      ${ps.length?`<tr class="g-foot"><td class="name" style="background:var(--bg)">الإجمالي</td><td><div class="stack">${st}</div></td><td>${progCell({progress:avg(ps)},f.color)}</td><td colspan="7"></td></tr>`:''}
+      </tbody></table></div>`:''}
+    </section>`}).join('')||emptyState();
+}
+function renderKanban(){
+  const vis=sorted(visible());if(!vis.length)return emptyState();
+  return `<div class="kanban">${STATUS.map(s=>{const ps=vis.filter(p=>p.status===s.k);return `<div class="col"><h4><span class="sw" style="background:${s.c}"></span>${s.n}<span class="c">${ps.length}</span></h4>${ps.map(p=>{const f=facOf(p),c=cover(p);return `<button class="kc" style="--c:${f.color}" data-open="${p.id}">${c?`<img src="${esc(c)}" alt="" loading="lazy">`:''}<div class="in"><div class="fac">${esc(f.name)}</div><div class="tt">${esc(p.name)}</div>${progCell(p,f.color)}<div class="row"><span>${p.end?'ينتهي '+fmt(p.end):'بدون تاريخ نهاية'}</span><span>${esc(p.owner||'')}</span></div></div></button>`}).join('')||'<div class="note" style="padding:6px">لا مشاريع</div>'}</div>`}).join('')}</div>`;
+}
+function renderTimeline(){
+  const vis=sorted(visible()).filter(p=>toD(p.start));
+  if(!vis.length)return visible().length?'<div class="empty"><b>أضف تاريخ بداية ونهاية للمشاريع</b><span>يظهر المشروع على الجدول الزمني عند تحديد تواريخه.</span></div>':emptyState();
+  let min=new Date(Math.min(...vis.map(p=>toD(p.start)),TODAY));
+  let max=new Date(Math.max(...vis.map(p=>toD(p.end)||toD(p.start)),TODAY));
+  min.setDate(min.getDate()-((min.getDay()+1)%7));// week starts Saturday
+  max.setDate(max.getDate()+7);
+  const PX=window.innerWidth<620?14:22,days=Math.round((max-min)/864e5),W=days*PX;
+  const x=d=>Math.round((d-min)/864e5)*PX;
+  let wk='';for(let d=new Date(min),i=1;d<max;d.setDate(d.getDate()+7),i++){const e=new Date(d);e.setDate(e.getDate()+6);wk+=`<div class="wk" style="inset-inline-start:${x(d)}px;width:${7*PX}px"><b>الأسبوع ${i}</b>${DS.format(d)} – ${DS.format(e)}</div>`}
+  const rows=facsSorted().map(f=>{const ps=vis.filter(p=>p.fid===f.id);if(!ps.length)return '';return `<div class="tl-row tl-gr" style="--c:${f.color};cursor:default"><div class="tl-lbl">${esc(f.name)}</div><div class="tl-grid"></div></div>`+ps.map(p=>{const a=toD(p.start),b=toD(p.end)||new Date(a.getTime()+7*864e5),w=Math.max(PX*2,x(b)-x(a)+PX);return `<div class="tl-row" data-open="${p.id}" style="--c:${f.color}"><div class="tl-lbl">${esc(p.name)}<small>${SMAP[p.status]?.n||''} · ${p.progress||0}%</small></div><div class="tl-grid"><div class="bar" style="inset-inline-start:${x(a)}px;width:${w}px"><i style="width:${p.progress||0}%"></i><span>${p.progress||0}%${p.end?'':' · بدون نهاية'}</span></div></div></div>`}).join('')}).join('');
+  return `<div class="tl-scroll"><div class="tl" style="--w:${W+230}px"><div class="tl-head"><div class="tl-lbl">المشروع</div><div class="tl-grid">${wk}</div></div><div style="position:relative">${rows}<div style="position:absolute;inset-block:0;inset-inline-start:230px;pointer-events:none" class="tl-ov"><div class="today" style="inset-inline-start:${x(TODAY)}px"></div></div></div></div></div><p class="note" style="margin-top:8px">الأسابيع تبدأ يوم السبت · الخط الأحمر يمثل تاريخ اليوم · الجزء المعبّأ من الشريط = نسبة الإنجاز</p>`;
+}
+function renderGallery(){
+  const vis=sorted(visible()).filter(p=>photos(p).length);
+  if(!vis.length)return visible().length?'<div class="empty"><b>لا توجد صور بعد</b><span>افتح أي مشروع وأضف صور قبل وأثناء وبعد التنفيذ.</span></div>':emptyState();
+  return vis.map(p=>{const f=facOf(p);return `<section class="gal-sec"><h4><span class="sw" style="background:${f.color}"></span>${esc(p.name)} <span class="note">· ${esc(f.name)} · ${photos(p).length} صورة</span></h4><div class="gal">${photos(p).map((ph,i)=>`<button class="ph" data-lb="${p.id}:${i}"><img src="${esc(ph.src)}" alt="${esc(ph.label||'')}" loading="lazy">${ph.label?`<span class="tag" style="--tc:${TAGS[ph.label]||'#1E3A8A'}">${esc(ph.label)}</span>`:''}</button>`).join('')}</div></section>`}).join('');
+}
+function renderView(){
+  const v=$('#view');
+  v.innerHTML=S.view==='kanban'?renderKanban():S.view==='timeline'?renderTimeline():S.view==='gallery'?renderGallery():renderTable();
+}
+function renderAll(){renderSummary();renderToolbar();renderView();if(S.openId&&!$('#layer').contains(document.activeElement))renderDrawer()}
+
+/* ---------- drawer ---------- */
+function openDrawer(id,focusTitle){S.openId=id;renderDrawer();if(focusTitle){const t=$('#dTitle');t&&(t.focus(),t.select())}}
+function closeDrawer(){S.openId=null;$('#layer').innerHTML=''}
+function renderDrawer(){
+  const p=S.proj.find(x=>x.id===S.openId);if(!p){closeDrawer();return}
+  const f=facOf(p),c=cover(p),tk=p.tasks||[],ph=photos(p),ups=(p.updates||[]).slice().sort((a,b)=>b.at-a.at);
+  const scroll=$('.dr-body')?.scrollTop||0;
+  $('#layer').innerHTML=`<div class="scrim" data-close></div><aside class="drawer" role="dialog" aria-label="${esc(p.name)}" style="--c:${f.color}">
+   <div class="dr-cover">${c?`<img src="${esc(c)}" alt="">`:''}<button class="dr-x" data-close aria-label="إغلاق"><svg width="16" height="16" viewBox="0 0 16 16" stroke="currentColor" stroke-width="2"><path d="m3 3 10 10M13 3 3 13"/></svg></button></div>
+   <div class="dr-body">
+    <div><div class="note" style="color:${f.color};font-weight:600">${esc(f.name)}</div><input class="dr-title" id="dTitle" value="${esc(p.name)}" aria-label="اسم المشروع"></div>
+    <div class="fields">
+      <div class="f"><label for="dStatus">الحالة</label><select id="dStatus">${STATUS.map(s=>`<option value="${s.k}" ${p.status===s.k?'selected':''}>${s.n}</option>`).join('')}</select></div>
+      <div class="f"><label for="dFac">المنشأة</label><select id="dFac">${facsSorted().map(x=>`<option value="${x.id}" ${p.fid===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></div>
+      <div class="f full"><label for="dProg">نسبة الإنجاز: <b id="dProgV" class="tab-num">${p.progress||0}%</b> · ${variance(p).t}${expected(p)!=null?' (المتوقع حسب الخطة '+expected(p)+'%)':''}</label><input type="range" id="dProg" min="0" max="100" step="5" value="${p.progress||0}"></div>
+      <div class="f"><label for="dStart">تاريخ البداية</label><input type="date" id="dStart" value="${esc(p.start||'')}"></div>
+      <div class="f"><label for="dEnd">تاريخ النهاية</label><input type="date" id="dEnd" value="${esc(p.end||'')}"></div>
+      <div class="f full"><label for="dOwner">المسؤول / المقاول</label><input id="dOwner" value="${esc(p.owner||'')}" placeholder="مثال: إدارة الصيانة"></div>
+      <div class="f full"><label for="dDesc">الوصف ونطاق العمل</label><textarea id="dDesc" placeholder="اكتب نطاق المشروع والملاحظات">${esc(p.desc||'')}</textarea></div>
+    </div>
+    <div><div class="sec-t">المهام والمراحل <small>${tk.filter(t=>t.done).length} من ${tk.length} منجزة</small></div>
+      <div class="tasks">${tk.map(t=>`<div class="task ${t.done?'done':''}"><input type="checkbox" data-tk="${t.id}" ${t.done?'checked':''} aria-label="${esc(t.t)}"><span>${esc(t.t)}</span>${t.when?`<small class="note">${esc(t.when)}</small>`:''}<button class="rm" data-rmtk="${t.id}" aria-label="حذف المهمة">✕</button></div>`).join('')||'<div class="note">لا توجد مهام بعد.</div>'}</div>
+      <form class="addline" id="tkForm"><input id="tkNew" placeholder="أضف مهمة أو مرحلة" aria-label="مهمة جديدة"><button class="btn">إضافة</button></form>
+      ${tk.length?`<button class="btn ghost" id="syncProg" style="margin-top:8px;font-size:12px">احسب نسبة الإنجاز من المهام (${Math.round(tk.filter(t=>t.done).length/tk.length*100)}%)</button>`:''}
+    </div>
+    <div><div class="sec-t">الصور <small>${ph.length} صورة</small></div>
+      <div class="dr-gal">${ph.map((x,i)=>`<div class="ph"><button style="all:unset;display:block;width:100%;height:100%;cursor:zoom-in" data-lb="${p.id}:${i}"><img src="${esc(x.src)}" alt="${esc(x.label||'')}" loading="lazy"></button>${x.label?`<span class="tag" style="--tc:${TAGS[x.label]||'#1E3A8A'}">${esc(x.label)}</span>`:''}<button class="rmph" data-rmph="${i}">حذف</button></div>`).join('')}</div>
+      <div class="upl" id="uplBox" ${S.assets?'':'hidden'}><select id="phLabel" class="sel" aria-label="نوع الصورة">${PHOTO_LABELS.map(l=>`<option>${l}</option>`).join('')}</select><label class="btn"><input type="file" id="phFile" accept="image/*" multiple hidden>رفع صور</label><span class="note" id="uplNote"></span></div>
+      ${S.assets?'':'<p class="note">رفع الصور متاح لمحرري اللوحة.</p>'}
+    </div>
+    <div><div class="sec-t">التحديثات <small>سجل المتابعة</small></div>
+      <form class="addline" id="upForm"><input id="upNew" placeholder="اكتب تحديثاً للفريق" aria-label="تحديث جديد"><button class="btn">نشر</button></form>
+      <div class="upd" style="margin-top:8px">${ups.map(u=>`<div class="u"><div class="h"><span>${esc(S.names[u.by]||'عضو الفريق')}</span><span>${DF.format(new Date(u.at))}</span></div><p>${esc(u.text)}</p></div>`).join('')||'<div class="note">لا توجد تحديثات بعد.</div>'}</div>
+    </div>
+    <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;border-top:1px solid var(--line2);padding-top:14px"><span class="note">آخر تعديل: ${p.updatedAt?DF.format(new Date(p.updatedAt)):'—'}</span><button class="btn danger" id="delProj">حذف المشروع</button></div>
+   </div></aside>`;
+  $('.dr-body').scrollTop=scroll;
+  if(S.readonly){document.querySelectorAll('.drawer input,.drawer select,.drawer textarea').forEach(el=>el.disabled=true);return}
+  resolveNames(ups.map(u=>u.by));
+  const p0=p.id;
+  const bind=(sel,ev,fn)=>{const el=$(sel);el&&el.addEventListener(ev,fn)};
+  bind('#dTitle','change',e=>save(p0,{name:e.target.value.trim()||'مشروع بدون اسم'}));
+  bind('#dStatus','change',e=>{const patch={status:e.target.value};if(e.target.value==='done')patch.progress=100;save(p0,patch)});
+  bind('#dFac','change',e=>save(p0,{fid:e.target.value}));
+  bind('#dProg','input',e=>{$('#dProgV').textContent=e.target.value+'%'});
+  bind('#dProg','change',e=>{const v=+e.target.value,patch={progress:v};if(v===100)patch.status='done';else if(v>0&&p.status==='todo')patch.status='prog';save(p0,patch)});
+  bind('#dStart','change',e=>save(p0,{start:e.target.value}));
+  bind('#dEnd','change',e=>save(p0,{end:e.target.value}));
+  bind('#dOwner','change',e=>save(p0,{owner:e.target.value.trim()}));
+  bind('#dDesc','change',e=>save(p0,{desc:e.target.value.trim()}));
+  bind('#tkForm','submit',e=>{e.preventDefault();const v=$('#tkNew').value.trim();if(!v)return;save(p0,{tasks:[...(p.tasks||[]),{id:uid(),t:v,done:false}]});setTimeout(()=>{$('#tkNew')?.focus()},0)});
+  bind('#upForm','submit',e=>{e.preventDefault();const v=$('#upNew').value.trim();if(!v)return;save(p0,{updates:[...(p.updates||[]),{by:S.myId||'',at:Date.now(),text:v}]})});
+  bind('#syncProg','click',()=>{const t=p.tasks||[];const v=Math.round(t.filter(x=>x.done).length/t.length*100);save(p0,{progress:v,status:v===100?'done':v>0&&p.status==='todo'?'prog':p.status})});
+  bind('#phFile','change',async e=>{
+    const files=[...e.target.files];if(!files.length||!S.assets)return;const label=$('#phLabel').value;const note=$('#uplNote');
+    const added=[];for(const [i,file] of files.entries()){note.textContent=`جارٍ الرفع ${i+1} من ${files.length}…`;try{const r=await S.assets.upload(file);added.push({src:'/_blob/'+r.id,label,asset:r.id})}catch(err){toast('تعذّر رفع '+file.name)}}
+    if(added.length){const cur=S.proj.find(x=>x.id===p0);await save(p0,{photos:[...photos(cur),...added],...(cur.cover?{}:{cover:added[0].src})});toast('تمت إضافة '+added.length+' صورة')}
+  });
+  const del=$('#delProj');del&&del.addEventListener('click',async()=>{if(!del.classList.contains('armed')){del.classList.add('armed');del.textContent='اضغط مرة أخرى لتأكيد الحذف';setTimeout(()=>{if(del.isConnected){del.classList.remove('armed');del.textContent='حذف المشروع'}},4000);return}
+    try{await S.db.collection('projects').doc(p0).delete();S.proj=S.proj.filter(x=>x.id!==p0);closeDrawer();renderAll();toast('حُذف المشروع')}catch(err){toast('تعذّر الحذف')}});
+}
+async function resolveNames(ids){
+  ids=[...new Set(ids.filter(Boolean))].filter(i=>!(i in S.names));if(!ids.length||!S.user)return;
+  try{const ps=await S.user.profiles(ids);let ch=false;for(const i of ids){S.names[i]=(ps[i]&&ps[i].name)||'عضو الفريق';ch=true}if(ch&&S.openId&&!$('#layer').contains(document.activeElement))renderDrawer()}catch(e){}
+}
+
+/* ---------- popovers / modals ---------- */
+function closeMenus(){document.querySelectorAll('.statusmenu').forEach(m=>m.remove())}
+function statusMenu(btn,id){
+  closeMenus();const r=btn.getBoundingClientRect();const m=document.createElement('div');m.className='statusmenu';
+  m.innerHTML=STATUS.map(s=>`<button class="status ${s.light?'light':''}" style="--sc:${s.c}" data-set="${s.k}">${s.n}</button>`).join('');
+  document.body.appendChild(m);
+  const top=Math.min(r.bottom+6,window.innerHeight-m.offsetHeight-10);m.style.top=top+'px';m.style.left=Math.max(10,Math.min(r.left,window.innerWidth-m.offsetWidth-10))+'px';
+  m.addEventListener('click',e=>{const b=e.target.closest('[data-set]');if(!b)return;const k=b.dataset.set,patch={status:k};if(k==='done')patch.progress=100;save(id,patch);closeMenus()});
+}
+function facModal(fid){
+  const f=S.fac.find(x=>x.id===fid);let color=f?.color||PALETTE[S.fac.length%PALETTE.length];
+  const host=document.createElement('div');host.className='modal';host.innerHTML=`<div class="scrim" data-mclose></div><form class="box" style="position:relative;z-index:1">
+    <h3>${f?'تعديل المنشأة':'إضافة منشأة'}</h3>
+    <div class="f"><label for="mName">اسم المنشأة</label><input id="mName" required value="${esc(f?.name||'')}" placeholder="مثال: مستشفى الملك فيصل"></div>
+    <div class="f"><label for="mSub">وصف مختصر (اختياري)</label><input id="mSub" value="${esc(f?.sub||'')}" placeholder="مثال: تابع لمستشفى الملك عبدالعزيز التخصصي"></div>
+    <div class="f"><label>لون المنشأة</label><div class="swatches">${PALETTE.map(c=>`<button type="button" style="--c:${c}" data-c="${c}" aria-pressed="${c===color}" aria-label="${c}"></button>`).join('')}</div></div>
+    <div style="display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap">${f?'<button type="button" class="btn danger" id="mDel">حذف المنشأة</button>':'<span></span>'}<div style="display:flex;gap:8px"><button type="button" class="btn ghost" data-mclose>إلغاء</button><button class="btn pri">حفظ</button></div></div>
+    ${f?`<p class="note" style="margin:0">لا يمكن حذف منشأة لها مشاريع؛ انقل المشاريع أو احذفها أولاً.</p>`:''}
+  </form>`;
+  document.body.appendChild(host);$('#mName').focus();
+  host.addEventListener('click',async e=>{
+    if(e.target.closest('[data-mclose]'))host.remove();
+    const sw=e.target.closest('[data-c]');if(sw){color=sw.dataset.c;host.querySelectorAll('[data-c]').forEach(b=>b.setAttribute('aria-pressed',b===sw))}
+    if(e.target.id==='mDel'){if(S.proj.some(p=>p.fid===fid)){toast('المنشأة تحتوي مشاريع');return}try{await S.db.collection('facilities').doc(fid).delete();S.fac=S.fac.filter(x=>x.id!==fid);if(S.fFac===fid)S.fFac='all';host.remove();renderAll()}catch(err){toast('تعذّر الحذف')}}
+  });
+  host.querySelector('form').addEventListener('submit',async e=>{e.preventDefault();if(!S.db){toast('سجّل الدخول لإضافة منشآت');return}
+    const data={name:$('#mName').value.trim(),sub:$('#mSub').value.trim(),color};if(!data.name)return;
+    try{if(f){await S.db.collection('facilities').doc(fid).update(data);Object.assign(f,data)}else{data.order=Date.now();const ref=S.db.collection('facilities').doc();await ref.set(data);S.fac.push({id:ref.id,...data})}host.remove();renderAll();toast('تم الحفظ')}catch(err){toast('تعذّر الحفظ')}});
+}
+function lightbox(pid,i){
+  const p=S.proj.find(x=>x.id===pid);if(!p)return;const ph=photos(p);if(!ph.length)return;
+  let k=i;const el=document.createElement('div');el.className='lb';document.body.appendChild(el);
+  const draw=()=>{const x=ph[k];el.innerHTML=`<div class="bar2"><div><b>${esc(p.name)}</b> <span class="note">· ${esc(x.label||'')} · ${k+1}/${ph.length}</span></div><button class="btn" data-x>إغلاق</button></div><img src="${esc(x.src)}" alt="${esc(x.label||'')}"><div class="bar2"><button class="btn" data-n="1">السابقة</button><button class="btn" data-n="-1">التالية</button></div>`};
+  draw();
+  el.addEventListener('click',e=>{if(e.target.closest('[data-x]')||e.target===el){el.remove();document.removeEventListener('keydown',kd)}const n=e.target.closest('[data-n]');if(n){k=(k-(+n.dataset.n)+ph.length)%ph.length;draw()}});
+  const kd=e=>{if(e.key==='Escape'){el.remove();document.removeEventListener('keydown',kd)}if(e.key==='ArrowLeft'){k=(k+1)%ph.length;draw()}if(e.key==='ArrowRight'){k=(k-1+ph.length)%ph.length;draw()}};
+  document.addEventListener('keydown',kd);
+}
+let tt;function toast(t){document.querySelector('.toast')?.remove();const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.appendChild(d);clearTimeout(tt);tt=setTimeout(()=>d.remove(),2600)}
+
+async function exportCSV(){
+  if(!S.downloads)return;
+  const head=['المنشأة','المشروع','الحالة','نسبة الإنجاز','مقارنة بالخطة','تاريخ البداية','تاريخ النهاية','المسؤول','المهام المنجزة','الوصف'];
+  const rows=sorted(visible()).map(p=>{const tk=p.tasks||[];return [facOf(p).name,p.name,SMAP[p.status]?.n||'',(p.progress||0)+'%',variance(p).t,p.start||'',p.end||'',p.owner||'',tk.length?tk.filter(t=>t.done).length+'/'+tk.length:'',p.desc||'']});
+  const csv='﻿'+[head,...rows].map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\r\n');
+  try{await S.downloads.save({filename:'مشاريع-التحسين-'+TODAY.toISOString().slice(0,10)+'.csv',data:new Blob([csv],{type:'text/csv;charset=utf-8'})})}catch(e){if(e&&e.code!=='cancelled'&&e.code!=='declined')toast('لم يتم التصدير')}
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click',e=>{
+  const t=e.target;
+  if(!t.closest('.statusmenu')&&!t.closest('[data-status]'))closeMenus();
+  const sb=t.closest('[data-status]');if(sb){e.stopPropagation();statusMenu(sb,sb.dataset.status);return}
+  const lb=t.closest('[data-lb]');if(lb){const [pid,i]=lb.dataset.lb.split(':');lightbox(pid,+i);return}
+  if(t.closest('[data-close]')){closeDrawer();return}
+  const v=t.closest('.tabs button');if(v){S.view=v.dataset.v;remember();renderToolbar();renderView();return}
+  const ch=t.closest('[data-f]');if(ch){S.fFac=(S.fFac===ch.dataset.f&&ch.classList.contains('fbar'))?'all':ch.dataset.f;remember();renderAll();if(ch.classList.contains('fbar'))$('.toolbar').scrollIntoView({behavior:'smooth'});return}
+  const col=t.closest('[data-col]');if(col){S.collapsed[col.dataset.col]=!S.collapsed[col.dataset.col];remember();renderView();return}
+  const ef=t.closest('[data-editfac]');if(ef){facModal(ef.dataset.editfac);return}
+  const ai=t.closest('[data-addin]');if(ai){createProject(ai.dataset.addin);return}
+  const act=t.closest('[data-act]');if(act){if(act.dataset.act==='addFac')facModal();if(act.dataset.act==='clear'){S.fFac='all';S.fStatus='all';S.q='';$('#q').value='';remember();renderAll()}return}
+  const op=t.closest('[data-open]');if(op&&!$('#layer').contains(op)){openDrawer(op.dataset.open);return}
+  const tk=t.closest('[data-tk]');if(tk){const p=S.proj.find(x=>x.id===S.openId);save(p.id,{tasks:(p.tasks||[]).map(x=>x.id===tk.dataset.tk?{...x,done:tk.checked}:x)});return}
+  const rt=t.closest('[data-rmtk]');if(rt){const p=S.proj.find(x=>x.id===S.openId);save(p.id,{tasks:(p.tasks||[]).filter(x=>x.id!==rt.dataset.rmtk)});return}
+  const rp=t.closest('[data-rmph]');if(rp){const p=S.proj.find(x=>x.id===S.openId);const ph=photos(p).slice();const [gone]=ph.splice(+rp.dataset.rmph,1);save(p.id,{photos:ph,...(p.cover===gone?.src?{cover:ph[0]?.src||''}:{})});return}
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeMenus();if(!document.querySelector('.lb')&&!document.querySelector('.modal'))closeDrawer();document.querySelector('.modal')?.remove()}if(e.key==='Enter'){const r=e.target.closest&&e.target.closest('[role=button][data-f],[role=button][data-open]');if(r)r.click()}});
+$('#q').addEventListener('input',e=>{S.q=e.target.value;renderView()});
+$('#fStatus').addEventListener('change',e=>{S.fStatus=e.target.value;remember();renderView()});
+$('#addProj').addEventListener('click',()=>{if(!S.fac.length){facModal();return}createProject(S.fFac!=='all'?S.fFac:'')});
+$('#addFac').addEventListener('click',()=>facModal());
+$('#exportBtn').addEventListener('click',exportCSV);
+let rz;window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>{if(S.view==='timeline')renderView()},200)});
+
+renderAll();
+
+/* ---------- data ---------- */
+function useSnapshot(){
+  try{const s=JSON.parse(document.getElementById('snap').textContent);S.fac=s.fac||[];S.proj=s.proj||[];S.readonly=true}catch(e){}
+  S.loaded=true;$('#sync').textContent='نسخة للعرض فقط';document.body.classList.add('ro');
+  document.querySelectorAll('#addProj,#addFac').forEach(b=>b.hidden=true);
+  renderAll();
+}
+(async()=>{
+  const c=window.claude;
+  if(!c||!c.use){useSnapshot();return}
+  c.use('assets').then(a=>{S.assets=a;if(S.openId)renderDrawer()}).catch(()=>{});
+  c.use('downloads').then(d=>{S.downloads=d;$('#exportBtn').hidden=!d}).catch(()=>{});
+  c.use('user').then(async u=>{S.user=u;if(u){try{S.myId=await u.id()}catch(e){}}}).catch(()=>{});
+  const db=await c.use('db');S.db=db;
+  if(!db){useSnapshot();return}
+  let gotF=false,gotP=false;
+  const timer=setTimeout(()=>{if(!S.loaded){S.loaded=true;$('#sync').textContent='تعذّر الوصول للبيانات حالياً';renderAll()}},10000);
+  const done=(snap)=>{if(!snap.metadata.fromCache&&gotF&&gotP){clearTimeout(timer);$('#sync').innerHTML='<span class="dot" style="background:var(--s-done)"></span>متزامن مباشرة'}if(gotF&&gotP){S.loaded=true}renderAll()};
+  const fail=()=>{clearTimeout(timer);S.loaded=true;$('#sync').textContent='انقطع الاتصال بالبيانات';renderAll()};
+  db.collection('facilities').onSnapshot(s=>{S.fac=s.docs.map(d=>({id:d.id,...d.data()}));gotF=true;done(s)},fail);
+  db.collection('projects').onSnapshot(s=>{S.proj=s.docs.map(d=>({id:d.id,...d.data()}));gotP=true;done(s)},fail);
+})();
+})();
+</script>
+
+</body></html>
