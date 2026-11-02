@@ -65,6 +65,12 @@ const MIGRATIONS=[
     if(!P['kfh-icu'])P['kfh-icu']={fid:'kfh',name:'مشروع صيانة فينيل العناية المركزة',desc:'صيانة فينيل العناية المركزة خلال 20 يوماً، وتشمل: إزالة الفينيل، رفع المخلفات وتنظيف الأرضيات، أعمال التسوية، أعمال اللحام.',start:'2026-12-01',end:'2026-12-20',status:'todo',progress:0,owner:'',cover:'',photos:[],tasks:tk(vinyl),updates:[],order:3.5,updatedAt:now};
     if(!P['kfh-opd'])P['kfh-opd']={fid:'kfh',name:'مشروع صيانة 15 عيادة بالعيادات الخارجية',desc:'صيانة 15 عيادة في العيادات الخارجية خلال شهر، وتشمل الأرضيات والأسقف والدهانات.',start:'2026-11-01',end:'2026-11-30',status:'prog',progress:0,owner:'',cover:'',photos:[],tasks:tk(['الأرضيات','الأسقف','الدهانات']),updates:[],order:1.5,updatedAt:now};
   }}
+,
+  {id:'m7-kfmc-10-clinics',run(st){
+    const P=st.projects||(st.projects={});
+    if(!P['kfh-10cl'])P['kfh-10cl']={fid:'kfh',name:'مشروع صيانة 10 عيادات',desc:'صيانة 10 عيادات خلال شهر، وتشمل: إصلاح الأرضيات، رفع المخلفات وتنظيف الأرضيات، أعمال التسوية، أعمال النجارة.',start:'2026-12-01',end:'2026-12-30',status:'todo',progress:0,owner:'',cover:'',photos:[],
+      tasks:['إصلاح الأرضيات','رفع المخلفات وتنظيف الأرضيات','أعمال التسوية','أعمال النجارة'].map((t,i)=>({id:'m7'+(i+1),t,done:false,when:''})),updates:[],order:3.7,updatedAt:Date.now()};
+  }}
 ];
 function migrate(st){st.migrations=st.migrations||[];let ch=false;for(const m of MIGRATIONS){if(!st.migrations.includes(m.id)){m.run(st);st.migrations.push(m.id);ch=true}}return ch}
 
