@@ -60,14 +60,59 @@ async function writeState(state, oldBlobs) {
   return state;
 }
 
-function pinRole(req) {
-  const got = String(req.headers['x-edit-pin'] || '');
-  if (!got) return null;
-  if (process.env.ADMIN_PIN && got === process.env.ADMIN_PIN) return 'admin';
-  if (process.env.EDIT_PIN && got === process.env.EDIT_PIN) return 'editor';
-  return null;
+/* ---- access codes & roles ---- */
+const CFGP = 'board/config-';
+const MAX_ADMINS = 5;
+function genPin(used) { let p; do { p = String(Math.floor(200000 + Math.random() * 799999)); } while (used.has(p)); used.add(p); return p; }
+async function readConfig(stateFacilities) {
+  const { blobs } = await list({ prefix: CFGP, limit: 1000 });
+  let cfg = {}, dirty = false;
+  if (blobs.length) {
+    blobs.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
+    const r = await fetch(blobs[0].url, { cache: 'no-store' });
+    if (r.ok) cfg = await r.json();
+  }
+  cfg.facilityPins = cfg.facilityPins || {};
+  cfg.admins = cfg.admins || [];
+  const used = new Set([process.env.ADMIN_PIN || '', cfg.opsPin || '', ...Object.values(cfg.facilityPins)]);
+  if (!cfg.opsPin) { cfg.opsPin = genPin(used); dirty = true; }
+  for (const fid of Object.keys(stateFacilities || {})) if (!cfg.facilityPins[fid]) { cfg.facilityPins[fid] = genPin(used); dirty = true; }
+  if (dirty) await writeConfig(cfg, blobs);
+  return { cfg, blobs };
 }
-function pinOk(req) { return !!pinRole(req); }
+async function writeConfig(cfg, oldBlobs) {
+  await put(CFGP + String(Date.now()).padStart(15, '0') + '.json', JSON.stringify(cfg), { access: 'public', contentType: 'application/json', addRandomSuffix: true, cacheControlMaxAge: 60 });
+  const stale = (oldBlobs || []).slice(3);
+  if (stale.length) await del(stale.map(b => b.url)).catch(() => {});
+}
+function deviceLabel(req) {
+  const ua = String(req.headers['user-agent'] || '');
+  return /iPhone/.test(ua) ? 'آيفون' : /iPad/.test(ua) ? 'آيباد' : /Android/.test(ua) ? 'أندرويد' : /Windows/.test(ua) ? 'ويندوز' : /Mac OS/.test(ua) ? 'ماك' : 'جهاز آخر';
+}
+/* returns {role:'admin'|'ops'|'facility', fid?, cfg} or {error,status} */
+async function auth(req, opts) {
+  opts = opts || {};
+  const got = String(req.headers['x-edit-pin'] || '').trim();
+  if (!got) return { error: 'pin', status: 401 };
+  const facilities = opts.facilities || (await readState()).state.facilities;
+  const { cfg, blobs } = await readConfig(facilities);
+  if (process.env.ADMIN_PIN && got === process.env.ADMIN_PIN) {
+    const dev = String(req.headers['x-device-id'] || '').slice(0, 64);
+    if (!dev) return { error: 'device', status: 400 };
+    let me = cfg.admins.find(a => a.id === dev);
+    if (!me) {
+      if (!opts.login) return { error: 'admin-not-registered', status: 403 };
+      if (cfg.admins.length >= MAX_ADMINS) return { error: 'admin-full', status: 403 };
+      me = { id: dev, name: editorName(req), device: deviceLabel(req), at: Date.now(), last: Date.now() };
+      cfg.admins.push(me); await writeConfig(cfg, blobs);
+    } else if (opts.login) { me.name = editorName(req); me.device = deviceLabel(req); me.last = Date.now(); await writeConfig(cfg, blobs); }
+    return { role: 'admin', cfg, blobs };
+  }
+  if (got === cfg.opsPin) return { role: 'ops', cfg, blobs };
+  const fid = Object.keys(cfg.facilityPins).find(k => cfg.facilityPins[k] === got && (facilities || {})[k]);
+  if (fid) return { role: 'facility', fid, cfg, blobs };
+  return { error: 'pin', status: 401 };
+}
 function editorName(req) {
   try { return decodeURIComponent(String(req.headers['x-editor-name'] || '')).slice(0, 60) || 'بدون اسم'; } catch (e) { return 'بدون اسم'; }
 }
@@ -127,4 +172,4 @@ function describe(st, o) {
   return { action: 'تعديل', target, name, fac, changes: ch };
 }
 
-module.exports = { readState, writeState, pinOk, pinRole, editorName, readLog, appendLog, describe };
+module.exports = { readState, writeState, auth, readConfig, writeConfig, deviceLabel, MAX_ADMINS, editorName, readLog, appendLog, describe };

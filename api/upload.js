@@ -1,10 +1,11 @@
 const { put } = require('@vercel/blob');
-const { pinOk } = require('./_store');
+const { auth } = require('./_store');
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') return res.status(405).json({ error: 'method' });
-  if (!pinOk(req)) return res.status(401).json({ error: 'pin' });
+  const a = await auth(req);
+  if (a.error) return res.status(a.status).json({ error: a.error });
   const type = String(req.headers['content-type'] || '');
   if (!/^image\/(jpeg|png|webp)$/.test(type)) return res.status(415).json({ error: 'type' });
   try {

@@ -1,6 +1,17 @@
-const { readState, writeState, pinRole, editorName, appendLog, describe } = require('./_store');
+const { readState, writeState, auth, editorName, deviceLabel, appendLog, describe } = require('./_store');
 const COLS = ['facilities', 'projects'];
 const ID = /^[A-Za-z0-9_-]{1,64}$/;
+
+function allowed(a, state, o) {
+  if (a.role === 'admin' || a.role === 'ops') return true;
+  if (a.role !== 'facility') return false;
+  if (o.c !== 'projects' || o.op === 'delete') return false;
+  const cur = (state.projects || {})[o.id];
+  if (cur && cur.fid !== a.fid) return false;
+  if (o.op === 'set' && (o.data || {}).fid !== a.fid) return false;
+  if (o.op === 'update' && o.data && 'fid' in o.data && o.data.fid !== a.fid) return false;
+  return true;
+}
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
@@ -10,24 +21,22 @@ module.exports = async (req, res) => {
       return res.status(200).json(state);
     }
     if (req.method !== 'POST') return res.status(405).json({ error: 'method' });
-    const role = pinRole(req);
-    if (!role) return res.status(401).json({ error: 'pin' });
     const ops = Array.isArray(req.body?.ops) ? req.body.ops : [req.body || {}];
+    const login = ops.some(o => o.op === 'ping' && o.login);
+    const { state, blobs } = await readState();
+    const a = await auth(req, { login, facilities: state.facilities });
+    if (a.error) return res.status(a.status).json({ error: a.error });
     if (ops.every(o => o.op === 'ping')) {
-      if (ops.some(o => o.login)) {
-        const ua = String(req.headers['user-agent'] || '');
-        const dev = /iPhone/.test(ua) ? 'آيفون' : /iPad/.test(ua) ? 'آيباد' : /Android/.test(ua) ? 'أندرويد' : /Windows/.test(ua) ? 'ويندوز' : /Mac OS/.test(ua) ? 'ماك' : 'جهاز آخر';
-        await appendLog([{ at: Date.now(), by: editorName(req), role, action: 'دخول', target: '', name: '', fac: '', device: dev, changes: [] }]).catch(() => {});
-      }
-      return res.status(200).json({ role });
+      if (login) await appendLog([{ at: Date.now(), by: editorName(req), role: a.role, fid: a.fid || '', action: 'دخول', target: '', name: '', fac: a.fid ? ((state.facilities || {})[a.fid] || {}).name || '' : '', device: deviceLabel(req), changes: [] }]).catch(() => {});
+      return res.status(200).json({ role: a.role, fid: a.fid || '' });
     }
     const by = editorName(req), at = Date.now(), entries = [];
-    const { state, blobs } = await readState();
     let changed = false;
     for (const o of ops) {
       if (o.op === 'ping') continue;
       if (!COLS.includes(o.c) || !ID.test(String(o.id || ''))) return res.status(400).json({ error: 'bad op' });
-      try { const d = describe(state, o); if (d.action !== 'تعديل' || d.changes.length) entries.push({ at, by, role, ...d }); } catch (e) {}
+      if (!allowed(a, state, o)) return res.status(403).json({ error: 'forbidden' });
+      try { const d = describe(state, o); if (d.action !== 'تعديل' || d.changes.length) entries.push({ at, by, role: a.role, fid: a.fid || '', ...d }); } catch (e) {}
       const col = state[o.c] || (state[o.c] = {});
       if (o.op === 'set') col[o.id] = o.data || {};
       else if (o.op === 'update') { if (!col[o.id]) return res.status(404).json({ error: 'missing' }); col[o.id] = { ...col[o.id], ...(o.data || {}) }; }
