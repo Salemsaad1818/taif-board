@@ -1,6 +1,7 @@
 <!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#061452">
 <title>لوحة مشاريع تجمع الطائف</title>
 <meta name="claude:viewport-fit-sides" content="cover">
+<meta name="author" content="سالم سعد الشهري">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alexandria:wght@500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
 <style>
@@ -398,7 +399,7 @@ body.editing .dr-title{border-color:#2F4DA0;background:#081B66}
 
   <main class="view" id="view"></main>
 
-  <footer class="foot"><span class="fby">تجمع الطائف الصحي · الإدارة التنفيذية للتشغيل<b>سالم سعد الشهري</b></span><span>التواريخ بالتقويم الميلادي · تُحفظ التعديلات تلقائياً لكل من يفتح اللوحة</span></footer>
+  <footer class="foot"><span class="fby">تجمع الطائف الصحي · الإدارة التنفيذية للتشغيل<b>إعداد وتطوير: سالم سعد الشهري © 2026</b></span><span>التواريخ بالتقويم الميلادي · تُحفظ التعديلات تلقائياً لكل من يفتح اللوحة</span></footer>
 </div>
 
 <div id="layer"></div>
@@ -833,7 +834,7 @@ async function exportPDF(list,label){
       for(const ph of photos(p)){n++;b.set(`تجهيز الصور ${n}…`);thumbs[ph.src]=await imgCrop(ph.src,PH_W,PH_H)}
     }
     const top=`<div class="glow"></div><div class="top"><div class="bid">${logo?`<img src="${logo.url}">`:''}<span class="bdiv"></span><div class="bn"><b>مشاريع التحسين</b><span><i></i>الإدارة التنفيذية للتشغيل</span></div></div><div class="clk">${dateTxt}<br><b style="color:#EEF2FF;font-weight:600">${timeTxt}</b></div></div>`;
-    const foot=`<div class="ft"><span>تجمع الطائف الصحي · الإدارة التنفيذية للتشغيل</span><span>صفحة {P} من {N}</span></div>`;
+    const foot=`<div class="ft"><span>تجمع الطائف الصحي · الإدارة التنفيذية للتشغيل</span><span>إعداد وتطوير: سالم سعد الشهري</span><span>صفحة {P} من {N}</span></div>`;
     const page=inner=>`<div class="pg">${top}${inner}${foot}</div>`;
     const stColor=s=>hex(s.c),stText=s=>s.light?'#061452':'#FFFFFF';
     const pill=p=>{const s=SMAP[p.status]||SMAP.todo;return `<span class="st" style="background:${stColor(s)};color:${stText(s)}">${s.n}</span>`};
@@ -905,7 +906,7 @@ async function exportExcel(list,label){
   const b=busy('جارٍ تجهيز ملف Excel…');
   try{
     await loadScript(LIBS.xlsx);
-    const X=window.ExcelJS;const wb=new X.Workbook();wb.creator='تجمع الطائف الصحي';wb.created=new Date();
+    const X=window.ExcelJS;const wb=new X.Workbook();wb.creator='سالم سعد الشهري - تجمع الطائف الصحي';wb.created=new Date();
     const C={navy:'FF061452',panel:'FF0A1A5E',head:'FF16307F',line:'FF24408F',fg:'FFEEF2FF',mut:'FF9AA8D8'};
     const argb=h=>'FF'+hex(h).slice(1).toUpperCase();
     const fill=a=>({type:'pattern',pattern:'solid',fgColor:{argb:a}});
@@ -931,7 +932,7 @@ async function exportExcel(list,label){
     s1.views=[{rightToLeft:true,showGridLines:false}];
     bg(s1,40,12);
     s1.mergeCells('A2:H2');s1.getCell('A2').value='تقرير متابعة مشاريع التحسين';s1.getCell('A2').font=F({size:22,bold:true});s1.getCell('A2').alignment={horizontal:'right',vertical:'middle'};s1.getRow(2).height=40;
-    s1.mergeCells('A3:H3');s1.getCell('A3').value=`الإدارة التنفيذية للتشغيل · ${DF.format(TODAY)} · ${label} · ${all.length} مشروع`;s1.getCell('A3').font=F({color:{argb:C.mut}});
+    s1.mergeCells('A3:H3');s1.getCell('A3').value=`الإدارة التنفيذية للتشغيل · ${DF.format(TODAY)} · ${label} · ${all.length} مشروع`;s1.getCell('A3').font=F({color:{argb:C.mut}});s1.mergeCells('A4:H4');s1.getCell('A4').value='إعداد وتطوير: سالم سعد الشهري';s1.getCell('A4').font=F({color:{argb:'FF2BD4F0'},size:10});
     if(logo){const id=wb.addImage({base64:logo.url,extension:'png'});s1.addImage(id,{tl:{col:9.3,row:0.3},ext:{width:260,height:Math.round(260*logo.h/logo.w)}})}
     const cnt=k=>all.filter(p=>p.status===k).length;
     const K=[['إجمالي المشاريع',all.length,'2BD4F0'],['متوسط الإنجاز',avg(all)/100,'7C8CFF',true],['قيد التنفيذ',cnt('prog'),'F5A524'],['لمسات نهائية',cnt('final'),'38BDF8'],['مكتمل',cnt('done'),'22C55E'],['متأخر عن الخطة',all.filter(p=>variance(p).cls==='bad').length,'F43F5E']];
@@ -1079,7 +1080,7 @@ function bindLog(){
 async function exportLogExcel(){
   const list=logFiltered();if(!list.length){toast('لا توجد تعديلات للتصدير');return}
   const b=busy('جارٍ تجهيز السجل…');
-  try{await loadScript(LIBS.xlsx);const wb=new ExcelJS.Workbook();const ws=wb.addWorksheet('سجل التعديلات',{properties:{tabColor:{argb:'FF7C8CFF'}}});
+  try{await loadScript(LIBS.xlsx);const wb=new ExcelJS.Workbook();wb.creator='سالم سعد الشهري - تجمع الطائف الصحي';const ws=wb.addWorksheet('سجل التعديلات',{properties:{tabColor:{argb:'FF7C8CFF'}}});
     ws.views=[{rightToLeft:true,state:'frozen',ySplit:1}];
     ws.columns=[{header:'التاريخ',width:26},{header:'الوقت',width:12},{header:'الموظف',width:20},{header:'الصلاحية',width:10},{header:'الإجراء',width:16},{header:'المنشأة',width:28},{header:'الاسم',width:34},{header:'التفاصيل',width:80}];
     list.forEach(e=>ws.addRow([DAYF.format(new Date(e.at)),TF12.format(new Date(e.at)),e.by,e.role==='admin'?'مسؤول':'موظف',e.action+' '+e.target,e.fac||'',e.name,(e.changes||[]).map(c=>c.text||`${c.label}: من ${c.from} إلى ${c.to}`).join(' | ')]));
