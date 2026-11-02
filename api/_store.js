@@ -47,6 +47,12 @@ const MIGRATIONS=[
     const F=st.facilities||(st.facilities={});
     if(!F['peds-pt'])F['peds-pt']={name:'العلاج الطبيعي للأطفال',sub:'',color:'#A78BFA',order:6};
   }}
+,
+  {id:'m5-children-hospital-physio',run(st){
+    const F=st.facilities||{},P=st.projects||(st.projects={});
+    if(F['peds-pt']&&F['peds-pt'].name==='العلاج الطبيعي للأطفال')F['peds-pt'].name='مستشفى الأطفال';
+    if(F['peds-pt']&&!P['peds-physio'])P['peds-physio']={fid:'peds-pt',name:'مشروع العلاج الطبيعي',desc:'تحسين قسم العلاج الطبيعي للأطفال.',status:'todo',progress:0,start:'',end:'',owner:'',cover:'',photos:[],tasks:[],updates:[],order:1,updatedAt:Date.now()};
+  }}
 ];
 function migrate(st){st.migrations=st.migrations||[];let ch=false;for(const m of MIGRATIONS){if(!st.migrations.includes(m.id)){m.run(st);st.migrations.push(m.id);ch=true}}return ch}
 
