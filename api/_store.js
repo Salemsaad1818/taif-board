@@ -78,6 +78,11 @@ const MIGRATIONS=[
     for(let i=1;i<=10;i++){const id='dental-cl-'+i;if(P[id])continue;
       P[id]={fid:par.fid,pid:'dental-clinics',name:'تطوير عيادة '+i,desc:'تطوير العيادة رقم '+i+' في مركز طب الأسنان التخصصي ضمن مبادرة «عيادتي».',status:'todo',progress:0,start:par.start||'',end:par.end||'',owner:'',cover:'',photos:[],tasks:[],updates:[],order:i,updatedAt:Date.now()};}
   }}
+,
+  {id:'m9-remove-dup-dental-1',run(st){
+    const P=st.projects||{};
+    for(const id of Object.keys(P)){const x=P[id];if(x.pid==='dental-clinics'&&!/^dental-cl-\d+$/.test(id)&&x.name==='تطوير عيادة رقم 1')delete P[id];}
+  }}
 ];
 function migrate(st){st.migrations=st.migrations||[];let ch=false;for(const m of MIGRATIONS){if(!st.migrations.includes(m.id)){m.run(st);st.migrations.push(m.id);ch=true}}return ch}
 
