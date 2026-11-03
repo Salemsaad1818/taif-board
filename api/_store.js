@@ -71,6 +71,13 @@ const MIGRATIONS=[
     if(!P['kfh-10cl'])P['kfh-10cl']={fid:'kfh',name:'مشروع صيانة 10 عيادات',desc:'صيانة 10 عيادات خلال شهر، وتشمل: إصلاح الأرضيات، رفع المخلفات وتنظيف الأرضيات، أعمال التسوية، أعمال النجارة.',start:'2026-12-01',end:'2026-12-30',status:'todo',progress:0,owner:'',cover:'',photos:[],
       tasks:['إصلاح الأرضيات','رفع المخلفات وتنظيف الأرضيات','أعمال التسوية','أعمال النجارة'].map((t,i)=>({id:'m7'+(i+1),t,done:false,when:''})),updates:[],order:3.7,updatedAt:Date.now()};
   }}
+,
+  {id:'m8-dental-10-subclinics',run(st){
+    const P=st.projects||(st.projects={}),par=P['dental-clinics'];
+    if(!par||par.pid)return;
+    for(let i=1;i<=10;i++){const id='dental-cl-'+i;if(P[id])continue;
+      P[id]={fid:par.fid,pid:'dental-clinics',name:'تطوير عيادة '+i,desc:'تطوير العيادة رقم '+i+' في مركز طب الأسنان التخصصي ضمن مبادرة «عيادتي».',status:'todo',progress:0,start:par.start||'',end:par.end||'',owner:'',cover:'',photos:[],tasks:[],updates:[],order:i,updatedAt:Date.now()};}
+  }}
 ];
 function migrate(st){st.migrations=st.migrations||[];let ch=false;for(const m of MIGRATIONS){if(!st.migrations.includes(m.id)){m.run(st);st.migrations.push(m.id);ch=true}}return ch}
 
