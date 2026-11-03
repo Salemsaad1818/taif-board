@@ -28,5 +28,15 @@
   "pid": "dental-cl-3",
   "src": "img/dent_3_2.jpg",
   "label": "قبل"
+ },
+ {
+  "pid": "dental-cl-4",
+  "src": "img/dent_4_1.jpg",
+  "label": "قبل"
+ },
+ {
+  "pid": "dental-cl-4",
+  "src": "img/dent_4_2.jpg",
+  "label": "قبل"
  }
 ]
