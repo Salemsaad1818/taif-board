@@ -84,7 +84,12 @@ const MIGRATIONS=[
     for(const id of Object.keys(P)){const x=P[id];if(x.pid==='dental-clinics'&&!/^dental-cl-\d+$/.test(id)&&x.name==='تطوير عيادة رقم 1')delete P[id];}
   }}
 ];
-function migrate(st){st.migrations=st.migrations||[];let ch=false;for(const m of MIGRATIONS){if(!st.migrations.includes(m.id)){m.run(st);st.migrations.push(m.id);ch=true}}return ch}
+const PHOTO_ADDS=require('./_photos.json');
+function migrate(st){st.migrations=st.migrations||[];let ch=false;for(const m of MIGRATIONS){if(!st.migrations.includes(m.id)){m.run(st);st.migrations.push(m.id);ch=true}}
+  st.photoAdds=st.photoAdds||[];const P=st.projects||{};
+  for(const a of PHOTO_ADDS){const key=a.pid+'|'+a.src;if(st.photoAdds.includes(key))continue;const p=P[a.pid];if(!p)continue;
+    p.photos=p.photos||[];if(!p.photos.some(x=>x.src===a.src))p.photos.push({src:a.src,label:a.label||''});if(!p.cover)p.cover=a.src;p.updatedAt=Date.now();st.photoAdds.push(key);ch=true}
+  return ch}
 
 
 async function loadRaw() {

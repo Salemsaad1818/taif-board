@@ -1,0 +1,12 @@
+[
+ {
+  "pid": "dental-cl-1",
+  "src": "img/dent_1_1.jpg",
+  "label": "قبل"
+ },
+ {
+  "pid": "dental-cl-1",
+  "src": "img/dent_1_2.jpg",
+  "label": "قبل"
+ }
+]
