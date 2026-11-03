@@ -68,5 +68,75 @@
   "pid": "dental-cl-8",
   "src": "img/dent_8_2.jpg",
   "label": "قبل"
+ },
+ {
+  "pid": "kfh-opd",
+  "src": "img/kfh-opd_1.jpg",
+  "label": "قبل"
+ },
+ {
+  "pid": "kfh-opd",
+  "src": "img/kfh-opd_2.jpg",
+  "label": "قبل"
+ },
+ {
+  "pid": "kfh-opd",
+  "src": "img/kfh-opd_3.jpg",
+  "label": "قبل"
+ },
+ {
+  "pid": "kfh-3",
+  "src": "img/kfh-3_1.jpg",
+  "label": "قبل"
+ },
+ {
+  "pid": "kfh-3",
+  "src": "img/kfh-3_2.jpg",
+  "label": "قبل"
+ },
+ {
+  "pid": "kfh-3",
+  "src": "img/kfh-3_3.jpg",
+  "label": "قبل"
+ },
+ {
+  "pid": "kfh-3",
+  "src": "img/kfh-3_4.jpg",
+  "label": "قبل"
+ },
+ {
+  "pid": "kfh-3",
+  "src": "img/kfh-3_5.jpg",
+  "label": "قبل"
+ },
+ {
+  "pid": "kfh-icu",
+  "src": "img/kfh-icu_1.jpg",
+  "label": "قبل"
+ },
+ {
+  "pid": "kfh-icu",
+  "src": "img/kfh-icu_2.jpg",
+  "label": "قبل"
+ },
+ {
+  "pid": "kfh-icu",
+  "src": "img/kfh-icu_3.jpg",
+  "label": "قبل"
+ },
+ {
+  "pid": "kfh-icu",
+  "src": "img/kfh-icu_4.jpg",
+  "label": "قبل"
+ },
+ {
+  "pid": "kfh-10cl",
+  "src": "img/kfh-10cl_1.jpg",
+  "label": "قبل"
+ },
+ {
+  "pid": "kfh-10cl",
+  "src": "img/kfh-10cl_2.jpg",
+  "label": "قبل"
  }
 ]
