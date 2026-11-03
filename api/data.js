@@ -2,7 +2,18 @@ const { readState, writeState, auth, editorName, deviceLabel, appendLog, describ
 const COLS = ['facilities', 'projects'];
 const ID = /^[A-Za-z0-9_-]{1,64}$/;
 
+function validParent(state, o) {
+  const d = o.data || {};
+  if (o.c !== 'projects' || !('pid' in d) || !d.pid) return true;
+  if (d.pid === o.id) return false;
+  const par = (state.projects || {})[d.pid];
+  if (!par || par.pid) return false;
+  const fid = 'fid' in d ? d.fid : ((state.projects || {})[o.id] || {}).fid;
+  if (par.fid !== fid) return false;
+  return !Object.values(state.projects || {}).some(x => x.pid === o.id);
+}
 function allowed(a, state, o) {
+  if (!validParent(state, o)) return false;
   if (a.role === 'admin' || a.role === 'ops') return true;
   if (a.role !== 'facility') return false;
   if (o.c !== 'projects' || o.op === 'delete') return false;

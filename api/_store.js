@@ -175,7 +175,7 @@ async function appendLog(entries) {
 }
 
 const STN = { todo: 'لم يبدأ', prog: 'قيد التنفيذ', final: 'لمسات نهائية', stuck: 'متعثر', done: 'مكتمل' };
-const LBL = { name: 'الاسم', status: 'الحالة', progress: 'نسبة الإنجاز', start: 'تاريخ البداية', end: 'تاريخ النهاية', owner: 'المسؤول', desc: 'الوصف', fid: 'المنشأة', cover: 'صورة الغلاف', color: 'اللون', sub: 'الوصف المختصر' };
+const LBL = { pid: 'المشروع الرئيسي', name: 'الاسم', status: 'الحالة', progress: 'نسبة الإنجاز', start: 'تاريخ البداية', end: 'تاريخ النهاية', owner: 'المسؤول', desc: 'الوصف', fid: 'المنشأة', cover: 'صورة الغلاف', color: 'اللون', sub: 'الوصف المختصر' };
 const short = v => { v = String(v ?? ''); return v.length > 90 ? v.slice(0, 90) + '…' : v; };
 function describe(st, o) {
   const col = st[o.c] || {}, before = col[o.id], target = o.c === 'projects' ? 'مشروع' : 'منشأة';
@@ -204,7 +204,7 @@ function describe(st, o) {
     } else if (k === 'cover') {
       ch.push({ text: 'غيّر صورة الغلاف' });
     } else {
-      const fmt = v => k === 'status' ? (STN[v] || v || '—') : k === 'progress' ? (v ?? 0) + '%' : k === 'fid' ? (((st.facilities || {})[v] || {}).name || v || '—') : (short(v) || '—');
+      const fmt = v => k === 'status' ? (STN[v] || v || '—') : k === 'progress' ? (v ?? 0) + '%' : k === 'fid' ? (((st.facilities || {})[v] || {}).name || v || '—') : k === 'pid' ? (v ? (((st.projects || {})[v] || {}).name || v) : 'بدون (رئيسي)') : (short(v) || '—');
       ch.push({ label: LBL[k] || k, from: fmt(a), to: fmt(b) });
     }
   }
