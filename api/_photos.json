@@ -138,5 +138,15 @@
   "pid": "kfh-10cl",
   "src": "img/kfh-10cl_2.jpg",
   "label": "قبل"
+ },
+ {
+  "pid": "dental-cl-7",
+  "src": "img/dent_7_1.jpg",
+  "label": "قبل"
+ },
+ {
+  "pid": "dental-cl-7",
+  "src": "img/dent_7_2.jpg",
+  "label": "قبل"
  }
 ]

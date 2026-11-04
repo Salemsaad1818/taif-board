@@ -100,6 +100,10 @@ const MIGRATIONS=[
   {id:'m9-remove-dup-dental-1',run(st){
     const P=st.projects||{};
     for(const id of Object.keys(P)){const x=P[id];if(x.pid==='dental-clinics'&&!/^dental-cl-\d+$/.test(id)&&x.name==='تطوير عيادة رقم 1')delete P[id];}
+  }},
+  {id:'m10-dental-dates-nov8',run(st){
+    const P=st.projects||{},now=Date.now();
+    for(const id of Object.keys(P)){const x=P[id];if(id==='dental-clinics'||x.pid==='dental-clinics'){x.start='2026-11-08';x.end='2026-11-11';x.updatedAt=now;}}
   }}
 ];
 const PHOTO_ADDS=require('./_photos.json');
