@@ -1240,8 +1240,8 @@ async function exportLogExcel(){
 function apiDb(){
   const L={facilities:[],projects:[]};let st=null,pending=0;
   const emit=()=>{for(const c in L){const docs=Object.entries((st&&st[c])||{}).map(([id,d])=>({id,data:()=>d}));L[c].forEach(fn=>fn({docs,metadata:{fromCache:false,hasPendingWrites:false}}))}};
-  async function pull(){if(pending)return;const r=await fetch('/api/data',{cache:'no-store'});if(!r.ok)throw new Error('load');const j=await r.json();if(pending)return;if(!st||j.rev!==st.rev){st=j;emit()}}
-  async function send(o){pending++;try{const r=await fetch('/api/data',{method:'POST',headers:hdrs({'content-type':'application/json'}),body:JSON.stringify(o)});if(r.status===401){setEdit(false);throw {code:'permission_denied'}}if(r.status===403){let j={};try{j=await r.json()}catch(e){}if(j.error==='admin-not-registered'){setEdit(false);toast('سجّل الدخول مرة ثانية برمز المسؤول')}throw {code:'forbidden'}}if(!r.ok)throw {code:'error'};st=await r.json()}finally{pending--}emit()}
+  async function pull(){if(pending)return;const r=await fetch('/api/data',{cache:'no-store'});if(!r.ok)throw new Error('load');const j=await r.json();if(pending)return;if(j.readonly&&!S.dbRO){S.dbRO=true;if(!S.readonly)setEdit(false);$('#editBtn').hidden=true;$('#viewBar').hidden=true}if(!st||(j.rev||0)>(st.rev||0)){st=j;emit()}}
+  async function send(o){pending++;try{const r=await fetch('/api/data',{method:'POST',headers:hdrs({'content-type':'application/json'}),body:JSON.stringify(o)});if(r.status===401){setEdit(false);throw {code:'permission_denied'}}if(r.status===403){let j={};try{j=await r.json()}catch(e){}if(j.error==='admin-not-registered'){setEdit(false);toast('سجّل الدخول مرة ثانية برمز المسؤول')}throw {code:'forbidden'}}if(!r.ok)throw {code:'error'};const j2=await r.json();if(!st||(j2.rev||0)>=(st.rev||0))st=j2}finally{pending--}emit()}
   const uid2=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
   const db={
     collection(c){return{
@@ -1297,11 +1297,12 @@ async function startApi(){
   if(API.pin){let seen=false;try{seen=sessionStorage.getItem('thc-sess')==='1'}catch(e){}
     if(!seen){db.ping(API.pin,API.name,true).then(r=>{if(!r||r.error){setEdit(false);if(r&&r.error==='admin-full')toast('اكتمل عدد المسؤولين، ادخل برمز آخر');return}try{sessionStorage.setItem('thc-sess','1')}catch(e){}if(r.role!==API.role||r.fid!==API.fid){API.role=r.role;API.fid=r.fid;saveApi();setEdit(true)}}).catch(()=>{})}}
   let gotF=false,gotP=false;
-  const done=()=>{if(gotF&&gotP){S.loaded=true;$('#sync').innerHTML='<span class="dot" style="background:var(--s-done)"></span>متزامن · يتحدث تلقائياً'}renderAll()};
+  const done=()=>{if(gotF&&gotP){S.loaded=true;$('#sync').innerHTML=S.dbRO?'<span class="dot" style="background:var(--s-wait,#F59E0B)"></span>عرض فقط مؤقتاً · صيانة الخادم':'<span class="dot" style="background:var(--s-done)"></span>متزامن · يتحدث تلقائياً'}renderAll()};
   db.collection('facilities').onSnapshot(s=>{S.fac=s.docs.map(d=>({id:d.id,...d.data()}));gotF=true;done()});
   db.collection('projects').onSnapshot(s=>{S.proj=s.docs.map(d=>({id:d.id,...d.data()}));gotP=true;done()});
   try{await db.pull()}catch(e){useSnapshot();$('#editBtn').hidden=true;$('#viewBar').hidden=true;return}
-  setInterval(()=>{if(document.visibilityState==='visible')db.pull().catch(()=>{$('#sync').textContent='تعذّر التحديث، سيُعاد المحاولة'})},15000);
+  setInterval(()=>{if(document.visibilityState==='visible')db.pull().catch(()=>{$('#sync').textContent='تعذّر التحديث، سيُعاد المحاولة'})},20000);
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')db.pull().catch(()=>{})});
 }
 /* ---------- data ---------- */
 function useSnapshot(){

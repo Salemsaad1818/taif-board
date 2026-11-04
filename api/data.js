@@ -1,4 +1,4 @@
-const { readState, writeState, auth, editorName, deviceLabel, appendLog, describe } = require('./_store');
+const { hasDB, readState, writeState, auth, editorName, deviceLabel, appendLog, describe } = require('./_store');
 const COLS = ['facilities', 'projects'];
 const ID = /^[A-Za-z0-9_-]{1,64}$/;
 
@@ -28,13 +28,15 @@ module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   try {
     if (req.method === 'GET') {
-      const { state } = await readState();
-      return res.status(200).json(state);
+      const { state, readonly } = await readState();
+      res.setHeader('Cache-Control', 'public, s-maxage=15, stale-while-revalidate=30');
+      return res.status(200).json(readonly ? { ...state, readonly: true } : state);
     }
     if (req.method !== 'POST') return res.status(405).json({ error: 'method' });
+    if (!hasDB()) return res.status(503).json({ error: 'readonly' });
     const ops = Array.isArray(req.body?.ops) ? req.body.ops : [req.body || {}];
     const login = ops.some(o => o.op === 'ping' && o.login);
-    const { state, blobs } = await readState();
+    const { state } = await readState();
     const a = await auth(req, { login, facilities: state.facilities });
     if (a.error) return res.status(a.status).json({ error: a.error });
     if (ops.every(o => o.op === 'ping')) {
@@ -55,7 +57,7 @@ module.exports = async (req, res) => {
       else return res.status(400).json({ error: 'bad op' });
       changed = true;
     }
-    const out = changed ? await writeState(state, blobs) : state;
+    const out = changed ? await writeState(state) : state;
     if (entries.length) await appendLog(entries).catch(() => {});
     return res.status(200).json(out);
   } catch (e) {

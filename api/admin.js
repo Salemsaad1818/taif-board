@@ -17,7 +17,7 @@ module.exports = async (req, res) => {
         else if (cfg.facilityPins[b.target]) cfg.facilityPins[b.target] = gen();
         else return res.status(400).json({ error: 'bad target' });
       } else return res.status(400).json({ error: 'bad action' });
-      await writeConfig(cfg, blobs);
+      await writeConfig(cfg);
     }
     const me = String(req.headers['x-device-id'] || '');
     return res.status(200).json({

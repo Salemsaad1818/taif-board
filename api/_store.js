@@ -1,6 +1,24 @@
-const { put, list, del } = require('@vercel/blob');
 const seed = require('./_seed.json');
-const PREFIX = 'board/state-';
+
+/* ---- storage: Upstash Redis (REST) ---- */
+const R_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || '';
+const R_TOK = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '';
+const hasDB = () => !!(R_URL && R_TOK);
+async function redis(...cmd) {
+  if (!hasDB()) throw Object.assign(new Error('no db'), { code: 'nodb' });
+  const r = await fetch(R_URL, { method: 'POST', headers: { Authorization: 'Bearer ' + R_TOK, 'content-type': 'application/json' }, body: JSON.stringify(cmd) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || j.error) throw new Error('redis ' + (j.error || r.status));
+  return j.result;
+}
+async function redisPipe(cmds) {
+  if (!hasDB()) throw Object.assign(new Error('no db'), { code: 'nodb' });
+  const r = await fetch(R_URL.replace(/\/$/, '') + '/pipeline', { method: 'POST', headers: { Authorization: 'Bearer ' + R_TOK, 'content-type': 'application/json' }, body: JSON.stringify(cmds) });
+  const j = await r.json().catch(() => []);
+  if (!r.ok) throw new Error('redis pipe ' + r.status);
+  return j.map(x => x.result);
+}
+const K = { state: 'tb:state', cfg: 'tb:config', log: 'tb:audit', img: 'tb:img:' };
 
 const ph=(src,label)=>({src:'img/'+src+'.jpg',label});
 const MIGRATIONS=[
@@ -92,27 +110,20 @@ function migrate(st){st.migrations=st.migrations||[];let ch=false;for(const m of
   return ch}
 
 
-async function loadRaw() {
-  const { blobs } = await list({ prefix: PREFIX, limit: 1000 });
-  if (!blobs.length) return { state: JSON.parse(JSON.stringify(seed)), blobs: [] };
-  blobs.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-  const r = await fetch(blobs[0].url, { cache: 'no-store' });
-  if (!r.ok) throw new Error('read failed');
-  return { state: await r.json(), blobs };
-}
 async function readState() {
-  const res = await loadRaw();
-  if (migrate(res.state)) { await writeState(res.state, res.blobs); }
-  return res;
+  let state = null;
+  if (hasDB()) { const raw = await redis('GET', K.state); if (raw) state = JSON.parse(raw); }
+  const fresh = !state;
+  if (!state) state = JSON.parse(JSON.stringify(seed));
+  if (migrate(state) || fresh) { if (hasDB()) await writeState(state); }
+  return { state, blobs: [], readonly: !hasDB() };
 }
 
-async function writeState(state, oldBlobs) {
+async function writeState(state) {
+  if (!hasDB()) throw Object.assign(new Error('no db'), { code: 'nodb' });
   state.rev = (state.rev || 0) + 1;
   state.savedAt = Date.now();
-  const name = PREFIX + String(state.savedAt).padStart(15, '0') + '.json';
-  await put(name, JSON.stringify(state), { access: 'public', contentType: 'application/json', addRandomSuffix: true, cacheControlMaxAge: 60 });
-  const stale = oldBlobs.slice(30);
-  if (stale.length) await del(stale.map(b => b.url)).catch(() => {});
+  await redis('SET', K.state, JSON.stringify(state));
   return state;
 }
 
@@ -121,25 +132,19 @@ const CFGP = 'board/config-';
 const MAX_ADMINS = 5;
 function genPin(used) { let p; do { p = String(Math.floor(200000 + Math.random() * 799999)); } while (used.has(p)); used.add(p); return p; }
 async function readConfig(stateFacilities) {
-  const { blobs } = await list({ prefix: CFGP, limit: 1000 });
   let cfg = {}, dirty = false;
-  if (blobs.length) {
-    blobs.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-    const r = await fetch(blobs[0].url, { cache: 'no-store' });
-    if (r.ok) cfg = await r.json();
-  }
+  if (hasDB()) { const raw = await redis('GET', K.cfg); if (raw) cfg = JSON.parse(raw); }
   cfg.facilityPins = cfg.facilityPins || {};
   cfg.admins = cfg.admins || [];
   const used = new Set([process.env.ADMIN_PIN || '', cfg.opsPin || '', ...Object.values(cfg.facilityPins)]);
-  if (!cfg.opsPin) { cfg.opsPin = genPin(used); dirty = true; }
+  if (!cfg.opsPin) { cfg.opsPin = process.env.OPS_PIN_SEED || genPin(used); dirty = true; }
   for (const fid of Object.keys(stateFacilities || {})) if (!cfg.facilityPins[fid]) { cfg.facilityPins[fid] = genPin(used); dirty = true; }
-  if (dirty) await writeConfig(cfg, blobs);
-  return { cfg, blobs };
+  if (dirty && hasDB()) await writeConfig(cfg);
+  return { cfg, blobs: [] };
 }
-async function writeConfig(cfg, oldBlobs) {
-  await put(CFGP + String(Date.now()).padStart(15, '0') + '.json', JSON.stringify(cfg), { access: 'public', contentType: 'application/json', addRandomSuffix: true, cacheControlMaxAge: 60 });
-  const stale = (oldBlobs || []).slice(3);
-  if (stale.length) await del(stale.map(b => b.url)).catch(() => {});
+async function writeConfig(cfg) {
+  if (!hasDB()) throw Object.assign(new Error('no db'), { code: 'nodb' });
+  await redis('SET', K.cfg, JSON.stringify(cfg));
 }
 function deviceLabel(req) {
   const ua = String(req.headers['user-agent'] || '');
@@ -160,8 +165,8 @@ async function auth(req, opts) {
       if (!opts.login) return { error: 'admin-not-registered', status: 403 };
       if (cfg.admins.length >= MAX_ADMINS) return { error: 'admin-full', status: 403 };
       me = { id: dev, name: editorName(req), device: deviceLabel(req), at: Date.now(), last: Date.now() };
-      cfg.admins.push(me); await writeConfig(cfg, blobs);
-    } else if (opts.login) { me.name = editorName(req); me.device = deviceLabel(req); me.last = Date.now(); await writeConfig(cfg, blobs); }
+      cfg.admins.push(me); await writeConfig(cfg);
+    } else if (opts.login) { me.name = editorName(req); me.device = deviceLabel(req); me.last = Date.now(); await writeConfig(cfg); }
     return { role: 'admin', cfg, blobs };
   }
   if (got === cfg.opsPin) return { role: 'ops', cfg, blobs };
@@ -174,21 +179,14 @@ function editorName(req) {
 }
 
 /* ---- audit log (admin only) ---- */
-const LOGP = 'board/audit-';
 async function readLog() {
-  const { blobs } = await list({ prefix: LOGP, limit: 1000 });
-  if (!blobs.length) return { log: [], blobs: [] };
-  blobs.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-  const r = await fetch(blobs[0].url, { cache: 'no-store' });
-  return { log: r.ok ? await r.json() : [], blobs };
+  if (!hasDB()) return { log: [] };
+  const arr = await redis('LRANGE', K.log, 0, 4999);
+  return { log: (arr || []).map(x => { try { return JSON.parse(x); } catch (e) { return null; } }).filter(Boolean) };
 }
 async function appendLog(entries) {
-  if (!entries.length) return;
-  const { log, blobs } = await readLog();
-  const next = entries.concat(log).slice(0, 5000);
-  await put(LOGP + String(Date.now()).padStart(15, '0') + '.json', JSON.stringify(next), { access: 'public', contentType: 'application/json', addRandomSuffix: true, cacheControlMaxAge: 60 });
-  const stale = blobs.slice(4);
-  if (stale.length) await del(stale.map(b => b.url)).catch(() => {});
+  if (!entries.length || !hasDB()) return;
+  await redisPipe([['LPUSH', K.log, ...entries.slice().reverse().map(e => JSON.stringify(e))], ['LTRIM', K.log, 0, 4999]]);
 }
 
 const STN = { todo: 'لم يبدأ', prog: 'قيد التنفيذ', final: 'لمسات نهائية', stuck: 'متعثر', done: 'مكتمل' };
@@ -228,4 +226,4 @@ function describe(st, o) {
   return { action: 'تعديل', target, name, fac, changes: ch };
 }
 
-module.exports = { readState, writeState, auth, readConfig, writeConfig, deviceLabel, MAX_ADMINS, editorName, readLog, appendLog, describe };
+module.exports = { redis, hasDB, K, readState, writeState, auth, readConfig, writeConfig, deviceLabel, MAX_ADMINS, editorName, readLog, appendLog, describe };
