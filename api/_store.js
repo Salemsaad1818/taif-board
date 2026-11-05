@@ -104,6 +104,11 @@ const MIGRATIONS=[
   {id:'m10-dental-dates-nov8',run(st){
     const P=st.projects||{},now=Date.now();
     for(const id of Object.keys(P)){const x=P[id];if(id==='dental-clinics'||x.pid==='dental-clinics'){x.start='2026-11-08';x.end='2026-11-11';x.updatedAt=now;}}
+  }},
+  {id:'m11-kash-ayadati-first',run(st){
+    const P=st.projects||{},ord=['kash-ayadati','kash-sterile','onco-clinics','kash-pacs','kash-er'];
+    const rest=Object.keys(P).filter(id=>P[id].fid==='kash'&&!P[id].pid&&!ord.includes(id)).sort((a,b)=>(P[a].order||0)-(P[b].order||0));
+    [...ord.filter(id=>P[id]),...rest].forEach((id,i)=>{P[id].order=i+1});
   }}
 ];
 const PHOTO_ADDS=require('./_photos.json');
@@ -204,7 +209,7 @@ function describe(st, o) {
   if (o.op === 'set' && !before) return { action: 'إضافة', target, name, fac: o.c === 'projects' ? ((st.facilities || {})[o.data?.fid] || {}).name || '' : '', changes: [] };
   const ch = [], d = o.data || {};
   for (const k of Object.keys(d)) {
-    if (k === 'updatedAt' || k === 'order') continue;
+    if (k === 'updatedAt' || k === 'order' || k === 'statusManual') continue;
     const a = before ? before[k] : undefined, b = d[k];
     if (JSON.stringify(a) === JSON.stringify(b)) continue;
     if (k === 'tasks') {

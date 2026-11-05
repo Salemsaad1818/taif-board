@@ -279,6 +279,10 @@ body.editing .editbar{display:flex}
 .editbar b{color:#fff}
 .editbar .sp{flex:1}
 .viewbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:16px;padding:10px 14px;border-radius:12px;background:#2BD4F010;border:1px dashed #2BD4F055;color:var(--muted);font-size:13px}
+.drag{display:none;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;margin-left:8px;color:var(--accent);font-size:17px;line-height:1;padding:4px 6px;border-radius:6px;border:1px solid var(--line);vertical-align:middle}
+body.editing .drag{display:inline-block}
+tr.dragging td{background:#12308F!important;box-shadow:inset 0 0 0 1px #2BD4F0}
+body.dragmode,body.dragmode *{user-select:none!important;-webkit-user-select:none!important;cursor:grabbing!important}
 .pen{display:none;margin-right:8px;font-size:11px;font-weight:600;color:var(--accent);border:1px solid #2BD4F055;border-radius:6px;padding:1px 7px;vertical-align:middle;white-space:nowrap}
 body.editing .pen{display:inline-block}
 body.editing tbody tr[data-open]:hover td{background:#1A3690}
@@ -522,11 +526,40 @@ function rollup(){
     if(k.length){p._ownProg=p._ownProg??p.progress;p.progress=Math.round(k.reduce((a,x)=>a+(+x.progress||0),0)/k.length);
       if(!p.start){const s=k.map(x=>x.start).filter(Boolean).sort()[0];if(s){p.start=s;p._autoStart=1}}
       if(!p.end){const e=k.map(x=>x.end).filter(Boolean).sort().pop();if(e){p.end=e;p._autoEnd=1}}}}
+  for(const p of S.proj){if(isManual(p)){p._autoSt=0;continue}const a=toD(p.start);p.status=(a&&a<=TODAY)||(+p.progress>0)?'prog':'todo';p._autoSt=1}
 }
+function isManual(p){return !!p.statusManual||!['todo','prog'].includes(p.status||'todo')}
+function stPatch(k){const patch=k==='auto'?{statusManual:false,status:'todo'}:{status:k,statusManual:true};if(k==='done')patch.progress=100;return patch}
 function withKids(list){const out=[],seen=new Set();for(const p of list){if(seen.has(p.id))continue;if(isTop(p)){out.push(p);seen.add(p.id);for(const k of kids(p)){if(!seen.has(k.id)){out.push(k);seen.add(k.id)}}}else if(!seen.has(p.id)){const par=parentOf(p);if(par&&list.includes(par))continue;out.push(p);seen.add(p.id)}}return out}
 function avg(list){return list.length?Math.round(list.reduce((a,p)=>a+(+p.progress||0),0)/list.length):0}
 function sorted(list){return list.slice().sort((a,b)=>(a.order??0)-(b.order??0)||String(a.name).localeCompare(b.name,'ar'))}
 function facsSorted(){return S.fac.slice().sort((a,b)=>(a.order??0)-(b.order??0))}
+
+/* ---------- drag reorder ---------- */
+let DRAG=null;
+function blockOf(tr){const out=[tr];if(!tr.classList.contains('sub')){let n=tr.nextElementSibling;while(n&&n.classList.contains('sub')){out.push(n);n=n.nextElementSibling}}return out}
+document.addEventListener('pointerdown',e=>{const h=e.target.closest('[data-drag]');if(!h||S.readonly||!S.db)return;e.preventDefault();e.stopPropagation();
+  const tr=h.closest('tr'),tb=tr.parentElement,key=tr.dataset.sib;
+  const sibs=()=>[...tb.querySelectorAll('tr[data-sib]')].filter(r=>r.dataset.sib===key);
+  DRAG={tr,tb,sibs,start:sibs().map(r=>r.dataset.open).join()};
+  tr.classList.add('dragging');document.body.classList.add('dragmode');
+  try{h.setPointerCapture(e.pointerId)}catch(_){}
+},true);
+document.addEventListener('pointermove',e=>{if(!DRAG)return;e.preventDefault();const y=e.clientY;
+  const others=DRAG.sibs().filter(r=>r!==DRAG.tr);if(!others.length)return;
+  const blk=blockOf(DRAG.tr);
+  const idx=others.findIndex(r=>{const b=r.getBoundingClientRect();return y<b.top+b.height/2});
+  if(idx===-1){const lb=blockOf(others[others.length-1]);const anchor=lb[lb.length-1].nextElementSibling;if(anchor!==blk[0])blk.forEach(r=>DRAG.tb.insertBefore(r,anchor))}
+  else{const t=others[idx];if(blk[blk.length-1].nextElementSibling!==t)blk.forEach(r=>DRAG.tb.insertBefore(r,t))}
+  if(y<70)window.scrollBy(0,-14);else if(y>innerHeight-70)window.scrollBy(0,14);
+},{passive:false});
+function endDrag(){if(!DRAG)return;const d=DRAG;DRAG=null;d.tr.classList.remove('dragging');document.body.classList.remove('dragmode');S.justDragged=Date.now();
+  const ids=d.sibs().map(r=>r.dataset.open);if(ids.join()===d.start)return;
+  const ops=[],now=Date.now();ids.forEach((id,i)=>{const p=S.proj.find(x=>x.id===id);if(p&&p.order!==i+1){p.order=i+1;ops.push({c:'projects',id,op:'update',data:{order:i+1,updatedAt:now}})}});
+  renderAll();if(!ops.length)return;setSave('saving');
+  S.db.batch(ops).then(()=>{setSave('saved');toast('تم حفظ الترتيب')}).catch(()=>{setSave('failed');toast('تعذّر حفظ الترتيب، حاول مرة أخرى')})}
+document.addEventListener('pointerup',endDrag);document.addEventListener('pointercancel',endDrag);
+document.addEventListener('click',e=>{if(e.target.closest('[data-drag]')||(S.justDragged&&Date.now()-S.justDragged<350)){e.stopPropagation();e.preventDefault()}},true);
 
 /* ---------- writes ---------- */
 const chains={};
@@ -596,7 +629,8 @@ function emptyState(){
 }
 function rowHtml(p,f,lvl,nk,kopen){const v=variance(p),dl=daysLeft(p),tk=p.tasks||[];
   const tg=nk?`<button class="ktg" data-ktg="${p.id}" aria-expanded="${kopen}">${kopen?'▾':'◂'} ${nk} فرعي</button>`:'';
-  return `<tr data-open="${p.id}" class="${lvl?'sub':''}${nk?' par':''}"><td class="name"><div class="nm">${lvl?'<span class="sb">↳</span>':''}${esc(p.name)}${tg}${canEditP(p)?'<span class="pen">✎ تعديل</span>':''}</div><div class="ds">${esc(p.desc||'')}</div></td><td>${statusBtn(p)}</td><td>${progCell(p,f.color)}</td><td><span class="var ${v.cls}">${v.t}</span></td><td class="tab-num">${fmt(p.start)}</td><td class="tab-num">${fmt(p.end)}</td><td class="tab-num">${dl==null?'—':p.status==='done'?'—':dl<0?`<span style="color:#FDA4AF">تجاوز ${-dl} يوم</span>`:dl+' يوم'}</td><td>${esc(p.owner||'—')}</td><td class="tab-num">${tk.length?tk.filter(t=>t.done).length+'/'+tk.length:'—'}</td><td>${thumbs(p)}</td></tr>`}
+  const dg=canEditP(p)&&!S.q.trim()&&S.fStatus==='all'?`<span class="drag" data-drag="${p.id}" title="اسحب لتغيير الترتيب">⠿</span>`:'';
+  return `<tr data-open="${p.id}" data-sib="${esc(p.fid)}|${lvl?esc(p.pid):''}" class="${lvl?'sub':''}${nk?' par':''}"><td class="name"><div class="nm">${dg}${lvl?'<span class="sb">↳</span>':''}${esc(p.name)}${tg}${canEditP(p)?'<span class="pen">✎ تعديل</span>':''}</div><div class="ds">${esc(p.desc||'')}</div></td><td>${statusBtn(p)}</td><td>${progCell(p,f.color)}</td><td><span class="var ${v.cls}">${v.t}</span></td><td class="tab-num">${fmt(p.start)}</td><td class="tab-num">${fmt(p.end)}</td><td class="tab-num">${dl==null?'—':p.status==='done'?'—':dl<0?`<span style="color:#FDA4AF">تجاوز ${-dl} يوم</span>`:dl+' يوم'}</td><td>${esc(p.owner||'—')}</td><td class="tab-num">${tk.length?tk.filter(t=>t.done).length+'/'+tk.length:'—'}</td><td>${thumbs(p)}</td></tr>`}
 function renderTable(){
   const vis=visible();
   const facs=facsSorted().filter(f=>S.fFac==='all'||f.id===S.fFac);
@@ -661,7 +695,7 @@ function renderDrawer(){
     ${!canEditP(p)?`<div class="dr-mode vw"><span>${S.readonly?'عرض فقط. لتغيير بيانات هذا المشروع ادخل وضع التعديل.':'هذا المشروع تابع لمنشأة أخرى، فهو للعرض فقط برمزك.'}</span><span class="sp"></span>${S.readonly?'<button class="btn pri" data-act="login">✎ تعديل</button>':''}</div>`:`<div class="dr-mode ed"><span>✎ أنت تعدّل هذا المشروع. اضغط على أي حقل لتغييره.</span><span class="sp"></span><span class="savepill ${S.saveState||'idle'}" id="savePill">${SAVE_TXT[S.saveState||'idle']}</span></div>`}
     <div><div class="note" style="color:${f.color};font-weight:600">${esc(f.name)}${parentOf(p)?` <span style="color:var(--muted);font-weight:400">· مشروع فرعي من</span> <button class="lnk" data-open2="${parentOf(p).id}">${esc(parentOf(p).name)}</button>`:''}</div><input class="dr-title" id="dTitle" value="${esc(p.name)}" aria-label="اسم المشروع"></div>
     <div class="fields">
-      <div class="f"><label for="dStatus">الحالة</label><select id="dStatus">${STATUS.map(s=>`<option value="${s.k}" ${p.status===s.k?'selected':''}>${s.n}</option>`).join('')}</select></div>
+      <div class="f"><label for="dStatus">الحالة</label><select id="dStatus"><option value="auto" ${!isManual(p)?'selected':''}>تلقائي حسب تاريخ البداية (${(SMAP[p.status]||SMAP.todo).n})</option>${STATUS.map(s=>`<option value="${s.k}" ${isManual(p)&&p.status===s.k?'selected':''}>${s.n}</option>`).join('')}</select></div>
       <div class="f"><label for="dFac">المنشأة</label><select id="dFac">${facsSorted().map(x=>`<option value="${x.id}" ${p.fid===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></div>
       ${(()=>{const cands=sorted(tops().filter(x=>x.fid===p.fid&&x.id!==p.id&&!x.pid));return p._kids?'':`<div class="f full"><label for="dPar">تابع لمشروع رئيسي</label><select id="dPar"><option value="">لا، مشروع رئيسي مستقل</option>${cands.map(x=>`<option value="${x.id}" ${p.pid===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></div>`})()}
       <div class="f full"><label for="dProg">نسبة الإنجاز: <b id="dProgV" class="tab-num">${p.progress||0}%</b>${p._kids?' · <span style="color:var(--accent)">تُحسب تلقائياً من متوسط المشاريع الفرعية</span>':''} · ${variance(p).t}${expected(p)!=null?' (المتوقع حسب الخطة '+expected(p)+'%)':''}</label><input type="range" id="dProg" min="0" max="100" step="5" value="${p.progress||0}" ${p._kids?'disabled':''}></div>
@@ -697,7 +731,7 @@ function renderDrawer(){
   const p0=p.id;
   const bind=(sel,ev,fn)=>{const el=$(sel);el&&el.addEventListener(ev,fn)};
   bind('#dTitle','change',e=>save(p0,{name:e.target.value.trim()||'مشروع بدون اسم'}));
-  bind('#dStatus','change',e=>{const patch={status:e.target.value};if(e.target.value==='done')patch.progress=100;save(p0,patch)});
+  bind('#dStatus','change',e=>{save(p0,stPatch(e.target.value))});
   bind('#dFac','change',e=>{const v=e.target.value;save(p0,{fid:v,...(p.pid?{pid:''}:{})});kids(p).forEach(k=>save(k.id,{fid:v}))});
   bind('#dPar','change',e=>save(p0,{pid:e.target.value}));
   bind('#dProg','input',e=>{$('#dProgV').textContent=e.target.value+'%'});
@@ -726,10 +760,10 @@ async function resolveNames(ids){
 function closeMenus(){document.querySelectorAll('.statusmenu').forEach(m=>m.remove())}
 function statusMenu(btn,id){
   closeMenus();const r=btn.getBoundingClientRect();const m=document.createElement('div');m.className='statusmenu';
-  m.innerHTML=STATUS.map(s=>`<button class="status ${s.light?'light':''}" style="--sc:${s.c}" data-set="${s.k}">${s.n}</button>`).join('');
+  m.innerHTML=STATUS.map(s=>`<button class="status ${s.light?'light':''}" style="--sc:${s.c}" data-set="${s.k}">${s.n}</button>`).join('')+`<button class="status" style="--sc:#1E3A8A" data-set="auto">↺ تلقائي حسب التاريخ</button>`;
   document.body.appendChild(m);
   const top=Math.min(r.bottom+6,window.innerHeight-m.offsetHeight-10);m.style.top=top+'px';m.style.left=Math.max(10,Math.min(r.left,window.innerWidth-m.offsetWidth-10))+'px';
-  m.addEventListener('click',e=>{const b=e.target.closest('[data-set]');if(!b)return;const k=b.dataset.set,patch={status:k};if(k==='done')patch.progress=100;save(id,patch);closeMenus()});
+  m.addEventListener('click',e=>{const b=e.target.closest('[data-set]');if(!b)return;save(id,stPatch(b.dataset.set));closeMenus()});
 }
 function facModal(fid){
   const f=S.fac.find(x=>x.id===fid);let color=f?.color||PALETTE[S.fac.length%PALETTE.length];
@@ -1248,7 +1282,7 @@ function apiDb(){
       onSnapshot(fn,err){L[c].push(fn);if(st)fn({docs:Object.entries(st[c]||{}).map(([id,d])=>({id,data:()=>d})),metadata:{fromCache:false}});return()=>{L[c]=L[c].filter(x=>x!==fn)}},
       doc(id){id=id||uid2();return{id,set:d=>send({c,id,op:'set',data:d}),update:d=>send({c,id,op:'update',data:d}),delete:()=>send({c,id,op:'delete'})}}
     }},
-    pull,ping:async(pin,name,login)=>{const r=await fetch('/api/data',{method:'POST',headers:{'content-type':'application/json','x-edit-pin':pin,'x-device-id':API.dev,'x-editor-name':encodeURIComponent(name||'')},body:JSON.stringify({op:'ping',login:!!login})});let j={};try{j=await r.json()}catch(e){}if(!r.ok)return {error:j.error||'pin'};return {role:j.role,fid:j.fid||''}}
+    pull,batch:ops=>send({ops}),ping:async(pin,name,login)=>{const r=await fetch('/api/data',{method:'POST',headers:{'content-type':'application/json','x-edit-pin':pin,'x-device-id':API.dev,'x-editor-name':encodeURIComponent(name||'')},body:JSON.stringify({op:'ping',login:!!login})});let j={};try{j=await r.json()}catch(e){}if(!r.ok)return {error:j.error||'pin'};return {role:j.role,fid:j.fid||''}}
   };
   return db;
 }
