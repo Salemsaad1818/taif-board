@@ -109,6 +109,15 @@ const MIGRATIONS=[
     const P=st.projects||{},ord=['kash-ayadati','kash-sterile','onco-clinics','kash-pacs','kash-er'];
     const rest=Object.keys(P).filter(id=>P[id].fid==='kash'&&!P[id].pid&&!ord.includes(id)).sort((a,b)=>(P[a].order||0)-(P[b].order||0));
     [...ord.filter(id=>P[id]),...rest].forEach((id,i)=>{P[id].order=i+1});
+  }},
+  {id:'m12-onco-photos-to-kash-clinic1',run(st){
+    const P=st.projects||{},src=P['onco-clinics'];if(!src)return;
+    const tid=P['mw3dqr4e8yqd3']?'mw3dqr4e8yqd3':Object.keys(P).find(id=>P[id].pid==='kash-ayadati'&&/عيادة\s*(رقم)?\s*1$/.test((P[id].name||'').trim()));
+    if(!tid)return;const t=P[tid],now=Date.now();
+    const have=new Set((t.photos||[]).map(x=>x.src));
+    t.photos=[...(t.photos||[]),...(src.photos||[]).filter(x=>!have.has(x.src))];
+    if(!t.cover)t.cover=src.cover||(t.photos[0]&&t.photos[0].src)||'';
+    src.photos=[];src.cover='';t.updatedAt=src.updatedAt=now;
   }}
 ];
 const PHOTO_ADDS=require('./_photos.json');
