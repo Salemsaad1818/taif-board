@@ -118,6 +118,13 @@ const MIGRATIONS=[
     t.photos=[...(t.photos||[]),...(src.photos||[]).filter(x=>!have.has(x.src))];
     if(!t.cover)t.cover=src.cover||(t.photos[0]&&t.photos[0].src)||'';
     src.photos=[];src.cover='';t.updatedAt=src.updatedAt=now;
+  }},
+  {id:'m13-kash-ayadati-tasks',run(st){
+    const p=(st.projects||{})['kash-ayadati'];if(!p)return;p.tasks=p.tasks||[];
+    const add=[['ka1','العيادة 1 مكتملة بالكامل','منجز',true],['ka2','المرحلة 1 · عيادات 2–4','الأسبوعان 1–2',false],['ka3','المرحلة 2 · عيادات 5–7','الأسبوعان 3–4',false],['ka4','المرحلة 3 · عيادات 8–10','الأسبوعان 5–6',false]];
+    const have=new Set(p.tasks.map(t=>t.id));
+    for(const [id,t,when,done] of add)if(!have.has(id))p.tasks.push({id,t,when,done});
+    p.updatedAt=Date.now();
   }}
 ];
 const PHOTO_ADDS=require('./_photos.json');
