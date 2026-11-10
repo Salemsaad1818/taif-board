@@ -125,6 +125,10 @@ const MIGRATIONS=[
     const have=new Set(p.tasks.map(t=>t.id));
     for(const [id,t,when,done] of add)if(!have.has(id))p.tasks.push({id,t,when,done});
     p.updatedAt=Date.now();
+  }},
+  {id:'m14-onco-remove-phase-tasks',run(st){
+    const p=(st.projects||{})['onco-clinics'];if(!p||!p.tasks)return;
+    p.tasks=p.tasks.filter(t=>!['t13','t14','t15','t16'].includes(t.id));p.updatedAt=Date.now();
   }}
 ];
 const PHOTO_ADDS=require('./_photos.json');
