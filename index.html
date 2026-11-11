@@ -519,6 +519,15 @@ tr.sub td.name,tr.sub td{background:rgba(255,255,255,.06)!important}
 .brand-name span::before{display:none!important}
 :root[data-theme="light"] .brand-name b,:root[data-theme="light"] .side .s-id b,:root[data-theme="light"] .brand-name span,:root[data-theme="light"] .side .s-id span{color:#1C91CF!important;opacity:1}
 @media(max-width:620px){.brand-name span{font-size:11.5px!important}}
+/* زر العودة لبوابة التشغيل */
+.pbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;min-width:44px;padding:0 14px;border-radius:14px;background:linear-gradient(135deg,#2BD4F0,#7C8CFF);color:#061452!important;font-family:inherit;font-weight:700;font-size:14px;line-height:1;text-decoration:none!important;white-space:nowrap;flex:none;box-shadow:inset 0 0 0 1px #FFFFFF55,0 8px 22px -8px #2BD4F0;transition:transform .2s,box-shadow .2s;-webkit-tap-highlight-color:transparent}
+.pbtn svg{width:20px;height:20px;flex:none}
+.pbtn:hover{transform:translateY(-1px);box-shadow:inset 0 0 0 1px #FFFFFF77,0 12px 28px -8px #2BD4F0}
+.pbtn:active{transform:scale(.97)}
+.pbtn:focus-visible{outline:2px solid #2BD4F0;outline-offset:3px}
+.pbtn.wide{display:flex;width:100%;height:48px;border-radius:16px;justify-content:flex-start;padding:0 14px;font-size:14.5px}
+.pbtn.wide .pa{margin-inline-start:auto;width:18px;height:18px;opacity:.8}
+@media(max-width:560px){.pbtn:not(.wide){width:40px;min-width:40px;height:40px;padding:0;border-radius:13px}.pbtn:not(.wide) span{display:none}}
 </style>
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 </head><body>
@@ -527,6 +536,7 @@ tr.sub td.name,tr.sub td{background:rgba(255,255,255,.06)!important}
 <div class="wrap">
   <header class="brand">
     <div class="brand-id">
+      <a class="pbtn" href="https://taif-ops.vercel.app/?back=1" aria-label="العودة لبوابة التشغيل" title="بوابة التشغيل"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/></svg><span>البوابة</span></a>
       <span class="logo-tile"><img src="img/logo-white.png" alt="تجمع الطائف الصحي - شركة الصحة القابضة"></span>
       <div class="brand-name"><b>مشاريع التحسين</b><span>الإدارة التنفيذية للتشغيل</span></div>
     </div>
@@ -1493,7 +1503,7 @@ function useSnapshot(){
  const deco=document.createElement('div');deco.className='bgdeco';deco.setAttribute('aria-hidden','true');deco.innerHTML='<div class="photo"></div><img class="wm" src="img/logo-white.png" alt="">';document.body.prepend(deco);
  const h=document.querySelector('.hero-in>div');if(h&&!h.querySelector('.pill2')){const p=document.createElement('span');p.className='pill2';p.innerHTML='<i></i>منصة متابعة مشاريع التحسين';h.prepend(p)}
  const side=document.createElement('aside');side.className='side';
- side.innerHTML='<div class="s-id"><img src="img/logo-white.png" alt="تجمع الطائف الصحي"><div><b>مشاريع التحسين</b><span>الإدارة التنفيذية للتشغيل</span></div></div><div class="s-clock"></div><nav class="s-nav" aria-label="طريقة العرض"></nav><div class="s-act"><button class="s-btn" data-theme-btn></button></div><div class="s-foot"><span class="vline"><i></i><span class="vt"></span></span><b>إعداد وتطوير: سالم سعد الشهري © 2026</b></div>';
+ side.innerHTML='<a class="pbtn wide" href="https://taif-ops.vercel.app/?back=1" aria-label="العودة لبوابة التشغيل"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/></svg><span>بوابة التشغيل</span><svg class="pa" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></a><div class="s-id"><img src="img/logo-white.png" alt="تجمع الطائف الصحي"><div><b>مشاريع التحسين</b><span>الإدارة التنفيذية للتشغيل</span></div></div><div class="s-clock"></div><nav class="s-nav" aria-label="طريقة العرض"></nav><div class="s-act"><button class="s-btn" data-theme-btn></button></div><div class="s-foot"><span class="vline"><i></i><span class="vt"></span></span><b>إعداد وتطوير: سالم سعد الشهري © 2026</b></div>';
  document.body.appendChild(side);
  const meta=document.querySelector('.brand-meta');const tb=document.createElement('button');tb.className='thbtn';tb.setAttribute('data-theme-btn','');meta.appendChild(tb);
  const fby=document.querySelector('.foot .fby');if(fby){const v=document.createElement('span');v.className='vline';v.innerHTML='<i></i><span class="vt"></span>';fby.appendChild(v)}
