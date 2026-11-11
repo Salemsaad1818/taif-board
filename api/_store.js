@@ -165,7 +165,7 @@ async function readConfig(stateFacilities) {
   if (hasDB()) { const raw = await redis('GET', K.cfg); if (raw) cfg = JSON.parse(raw); }
   cfg.facilityPins = cfg.facilityPins || {};
   cfg.admins = cfg.admins || [];
-  const used = new Set([process.env.ADMIN_PIN || '', cfg.opsPin || '', ...Object.values(cfg.facilityPins)]);
+  const used = new Set([process.env.ADMIN_PIN || '', process.env.VP_PIN || '', cfg.opsPin || '', ...Object.values(cfg.facilityPins)]);
   if (!cfg.opsPin) { cfg.opsPin = process.env.OPS_PIN_SEED || genPin(used); dirty = true; }
   for (const fid of Object.keys(stateFacilities || {})) if (!cfg.facilityPins[fid]) { cfg.facilityPins[fid] = genPin(used); dirty = true; }
   if (dirty && hasDB()) await writeConfig(cfg);
@@ -198,6 +198,7 @@ async function auth(req, opts) {
     } else if (opts.login) { me.name = editorName(req); me.device = deviceLabel(req); me.last = Date.now(); await writeConfig(cfg); }
     return { role: 'admin', cfg, blobs };
   }
+  if (process.env.VP_PIN && got === process.env.VP_PIN) return { role: 'ops', vp: true, cfg, blobs };
   if (got === cfg.opsPin) return { role: 'ops', cfg, blobs };
   const fid = Object.keys(cfg.facilityPins).find(k => cfg.facilityPins[k] === got && (facilities || {})[k]);
   if (fid) return { role: 'facility', fid, cfg, blobs };

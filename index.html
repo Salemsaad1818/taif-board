@@ -533,6 +533,26 @@ tr.sub td.name,tr.sub td{background:rgba(255,255,255,.06)!important}
 .pbtn.wide{display:flex;width:100%;height:48px;border-radius:16px;justify-content:flex-start;padding:0 14px;font-size:14.5px}
 .pbtn.wide .pa{margin-inline-start:auto;width:18px;height:18px;opacity:.8}
 @media(max-width:560px){.pbtn:not(.wide){width:40px;min-width:40px;height:40px;padding:0;border-radius:13px}.pbtn:not(.wide) span{display:none}}
+
+/* login picker */
+.lgm .box{max-width:520px;width:calc(100vw - 24px);max-height:calc(100dvh - 24px);overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding:20px}
+.lgh{display:flex;align-items:center;justify-content:space-between}.lgh h3{margin:0;font-size:20px}
+.xbtn{width:40px;height:40px;border-radius:12px;border:1px solid var(--glassb);background:var(--glass2);color:var(--fg);font-size:16px;cursor:pointer}
+.lgg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.lgs{font-size:12.5px;color:var(--muted);margin-top:2px}
+.lgt{display:flex;align-items:center;gap:12px;min-height:58px;padding:10px 14px;border-radius:16px;border:1px solid var(--glassb);background:rgba(255,255,255,.07);color:var(--fg);font:inherit;text-align:start;cursor:pointer;transition:border-color .15s,background .15s}
+.lgt.full{grid-column:1/-1}
+.lgt i{width:14px;height:14px;border-radius:5px;background:var(--c);flex:none;box-shadow:0 0 10px color-mix(in srgb,var(--c) 60%,transparent)}
+.lgt span{display:flex;flex-direction:column;gap:2px;min-width:0}.lgt b{font-size:14px;line-height:1.4}.lgt small{font-size:12px;color:var(--muted)}
+.lgt[aria-pressed="true"]{border:1.5px solid var(--c);background:color-mix(in srgb,var(--c) 16%,transparent)}
+#lgForm{display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:18px;border:1.5px solid var(--acc,#F5A524);background:var(--glass);margin:2px 0 4px;animation:lgin .2s ease-out;scroll-margin:16px}
+#lgForm[hidden]{display:none}
+@keyframes lgin{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+#lgForm input[type=text],#lgForm input[type=password],#lgForm #lgName{width:100%;box-sizing:border-box;min-height:46px;font-size:16px}
+.pinw{position:relative}.pinw .eye{position:absolute;left:8px;top:50%;transform:translateY(-50%);border:0;background:none;color:var(--muted);font-size:16px;cursor:pointer;padding:6px}
+.lgrem{display:flex;align-items:center;gap:10px;font-size:13.5px;cursor:pointer}.lgrem input{width:20px;height:20px;accent-color:#F5A524}
+.lgbtn{min-height:48px;font-size:16px;justify-content:center}
+@media(max-width:420px){.lgt{min-height:54px;padding:8px 12px}.lgt b{font-size:13px}}
 </style>
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 </head><body>
@@ -1412,7 +1432,7 @@ function apiDb(){
       onSnapshot(fn,err){L[c].push(fn);if(st)fn({docs:Object.entries(st[c]||{}).map(([id,d])=>({id,data:()=>d})),metadata:{fromCache:false}});return()=>{L[c]=L[c].filter(x=>x!==fn)}},
       doc(id){id=id||uid2();return{id,set:d=>send({c,id,op:'set',data:d}),update:d=>send({c,id,op:'update',data:d}),delete:()=>send({c,id,op:'delete'})}}
     }},
-    pull,batch:ops=>send({ops}),ping:async(pin,name,login)=>{const r=await fetch('/api/data',{method:'POST',headers:{'content-type':'application/json','x-edit-pin':pin,'x-device-id':API.dev,'x-editor-name':encodeURIComponent(name||'')},body:JSON.stringify({op:'ping',login:!!login})});let j={};try{j=await r.json()}catch(e){}if(!r.ok)return {error:j.error||'pin'};return {role:j.role,fid:j.fid||''}}
+    pull,batch:ops=>send({ops}),ping:async(pin,name,login)=>{const r=await fetch('/api/data',{method:'POST',headers:{'content-type':'application/json','x-edit-pin':pin,'x-device-id':API.dev,'x-editor-name':encodeURIComponent(name||'')},body:JSON.stringify({op:'ping',login:!!login})});let j={};try{j=await r.json()}catch(e){}if(!r.ok)return {error:j.error||'pin'};return {role:j.role,fid:j.fid||'',vp:!!j.vp}}
   };
   return db;
 }
@@ -1433,21 +1453,52 @@ function setEdit(on){
   const fg=$('#edForget');if(fg)fg.hidden=!(on&&API.rem!==false);
   renderAll();
 }
+const VP_NAME='م. بندر بن غرمان الشهري',ADMIN_NAME='سالم الشهري';
 function loginModal(){
-  const host=document.createElement('div');host.className='modal';host.innerHTML=`<div class="scrim" data-mclose></div><form class="box" method="post" action="#" autocomplete="on" style="position:relative;z-index:1">
-    <h3>✎ الدخول لوضع التعديل</h3><p class="note" style="margin:0">أدخل اسمك ورمز التعديل.</p>
-    <div class="f"><label for="lgName">اسمك (يظهر في التحديثات)</label><input id="lgName" name="username" autocomplete="username" required value="${esc(API.name)}" placeholder="مثال: سالم"></div>
-    <div class="f"><label for="lgPin">رمز الدخول (رمز منشأتك، أو رمز التشغيل، أو رمز المسؤول)</label><input id="lgPin" name="password" type="password" required inputmode="numeric" autocomplete="current-password"></div>
-    <label style="display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer"><input type="checkbox" id="lgRem" checked style="width:20px;height:20px;accent-color:#F5A524"> حفظ الرمز في هذا الجهاز، فلا تحتاج إدخاله مرة ثانية</label>
-    <p class="note" id="lgErr" style="margin:0;color:#FDA4AF" hidden>الرمز غير صحيح، تأكد منه وحاول مرة أخرى.</p>
-    <div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn ghost" data-mclose>إلغاء</button><button class="btn pri">دخول</button></div></form>`;
-  document.body.appendChild(host);$('#lgName').focus();
-  host.addEventListener('click',e=>{if(e.target.closest('[data-mclose]'))host.remove()});
-  host.querySelector('form').addEventListener('submit',async e=>{e.preventDefault();const name=$('#lgName').value.trim(),pin=$('#lgPin').value.trim();
-    let ok=null;try{ok=await S.db.ping(pin,name,true)}catch(err){}
-    if(!ok||ok.error){$('#lgErr').textContent=ok&&ok.error==='admin-full'?'اكتمل عدد المسؤولين (5 أشخاص). اطلب من مسؤول حالي يزيل أحد المسجلين.':'الرمز غير صحيح، تأكد منه وحاول مرة أخرى.';$('#lgErr').hidden=false;return}
-    API.pin=pin;API.name=name;API.role=ok.role;API.fid=ok.fid;API.rem=$('#lgRem').checked;API.on=true;saveApi();
-    try{sessionStorage.setItem('thc-sess','1')}catch(err){}host.remove();setEdit(true);toast('أهلاً '+name+'، دخلت بصلاحية '+(ok.role==='facility'?'منشأة: '+(facOf({fid:ok.fid}).name||''):ROLE_N[ok.role]||''))});
+  let want='';
+  const fl=facsSorted();
+  const tile=(w,c,t,sub,full)=>`<button type="button" class="lgt${full?' full':''}" data-lw="${w}" style="--c:${c}" aria-pressed="false"><i></i><span><b>${t}</b>${sub?`<small>${sub}</small>`:''}</span></button>`;
+  const host=document.createElement('div');host.className='modal lgm';host.innerHTML=`<div class="scrim" data-mclose></div><div class="box" style="position:relative;z-index:1">
+    <div class="lgh"><h3>الدخول للتعديل</h3><button type="button" class="xbtn" data-mclose aria-label="إغلاق">✕</button></div>
+    <p class="note" style="margin:0">اختر جهتك وأدخل رمزها، والصلاحية تتحدد تلقائياً.</p>
+    <div class="lgg">
+      ${tile('vp','#F5A524','نائب الرئيس التنفيذي للتشغيل',VP_NAME,1)}
+      ${tile('ops','#2BD4F0','التشغيل','تعديل وإضافة كل المشاريع',1)}
+    </div>
+    <span class="lgs">المنشآت · كل منشأة تعدّل مشاريعها فقط</span>
+    <div class="lgg">${fl.map((f,k)=>tile('fac:'+f.id,f.color,esc(f.name),'',fl.length%2&&k===fl.length-1)).join('')}</div>
+    <div class="lgg">${tile('admin','#8B9BFF','مسؤول النظام',ADMIN_NAME,1)}</div>
+    <form id="lgForm" method="post" action="#" autocomplete="on" hidden>
+      <div class="f"><label for="lgName">اسمك</label><input id="lgName" name="username" autocomplete="username" required placeholder="اكتب اسمك"></div>
+      <div class="f"><label for="lgPin" id="lgPinL">الرمز</label><div class="pinw"><input id="lgPin" name="password" type="password" required inputmode="numeric" autocomplete="current-password" placeholder="••••••"><button type="button" class="eye" id="lgEye" aria-label="إظهار الرمز">👁</button></div></div>
+      <label class="lgrem"><input type="checkbox" id="lgRem" checked> حفظ الرمز في هذا الجهاز، فلا تحتاج إدخاله مرة ثانية</label>
+      <p class="note" id="lgErr" style="margin:0;color:#FDA4AF" hidden></p>
+      <button class="btn pri lgbtn">دخول</button>
+    </form></div>`;
+  document.body.appendChild(host);
+  const form=host.querySelector('#lgForm');
+  function place(sel){const g=sel.parentElement;let a=sel;const top=sel.offsetTop;[...g.children].forEach(c=>{if(c.offsetTop===top)a=c});a.after(form);form.style.gridColumn='1/-1'}
+  host.addEventListener('click',e=>{
+    if(e.target.closest('[data-mclose]')){host.remove();return}
+    if(e.target.closest('#lgEye')){const i=$('#lgPin');i.type=i.type==='password'?'text':'password';return}
+    const b=e.target.closest('[data-lw]');if(!b)return;
+    want=b.dataset.lw;host.querySelectorAll('[data-lw]').forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false'));
+    form.hidden=false;form.style.setProperty('--acc',getComputedStyle(b).getPropertyValue('--c'));place(b);
+    const nm=$('#lgName');const pre=want==='vp'?VP_NAME:want==='admin'?ADMIN_NAME:'';
+    if(pre&&(!nm.value||nm.value===VP_NAME||nm.value===ADMIN_NAME))nm.value=pre;else if(!pre&&(nm.value===VP_NAME||nm.value===ADMIN_NAME||!nm.value))nm.value=API.name&&API.name!==VP_NAME&&API.name!==ADMIN_NAME?API.name:'';
+    $('#lgPinL').textContent='رمز '+(want==='vp'?'نائب الرئيس':want==='ops'?'التشغيل':want==='admin'?'مسؤول النظام':(facOf({fid:want.slice(4)}).name||'المنشأة'));
+    $('#lgErr').hidden=true;
+    setTimeout(()=>{form.scrollIntoView({behavior:'smooth',block:'nearest'});(nm.value?$('#lgPin'):nm).focus({preventScroll:true})},40);
+  });
+  form.addEventListener('submit',async e=>{e.preventDefault();const name=$('#lgName').value.trim(),pin=$('#lgPin').value.trim();if(!want||!name||!pin)return;
+    const err=t=>{$('#lgErr').textContent=t;$('#lgErr').hidden=false};
+    let ok=null;try{ok=await S.db.ping(pin,name,true)}catch(x){}
+    if(!ok||ok.error){err(ok&&ok.error==='admin-full'?'اكتمل عدد المسؤولين (5 أشخاص). اطلب من مسؤول حالي يزيل أحد المسجلين.':'الرمز غير صحيح، تأكد منه وحاول مرة أخرى.');return}
+    const match=want==='vp'?(ok.role==='ops'&&ok.vp):want==='ops'?(ok.role==='ops'&&!ok.vp):want==='admin'?ok.role==='admin':(ok.role==='facility'&&ok.fid===want.slice(4));
+    if(!match){err('هذا الرمز لا يخص الجهة المختارة. اختر جهتك الصحيحة.');return}
+    API.pin=pin;API.name=name;API.role=ok.role;API.fid=ok.fid;API.vp=!!ok.vp;API.rem=$('#lgRem').checked;API.on=true;saveApi();
+    try{sessionStorage.setItem('thc-sess','1')}catch(x){}host.remove();setEdit(true);
+    toast('أهلاً '+name+'، دخلت بصلاحية '+(ok.vp?'نائب الرئيس التنفيذي للتشغيل':ok.role==='facility'?'منشأة: '+(facOf({fid:ok.fid}).name||''):ROLE_N[ok.role]||''))});
 }
 async function startApi(){
   S.logReady=true;
@@ -1460,7 +1511,7 @@ async function startApi(){
     else{const w=window.open(url,'_blank');if(!w)window.location.href=url}}};
   $('#editBtn').addEventListener('click',async()=>{if(!S.readonly){setEdit(false);if(API.pin&&API.rem!==false)toast('خرجت من التعديل، رمزك محفوظ في هذا الجهاز');return}
     if(API.pin&&API.rem!==false){let r=null;try{r=await db.ping(API.pin,API.name,false)}catch(e){}
-      if(r&&!r.error){API.role=r.role;API.fid=r.fid;API.on=true;saveApi();setEdit(true);toast('أهلاً '+API.name);return}
+      if(r&&!r.error){API.role=r.role;API.fid=r.fid;API.vp=!!r.vp;API.on=true;saveApi();setEdit(true);toast('أهلاً '+API.name);return}
       if(r&&r.error){forgetApi();toast('الرمز المحفوظ لم يعد صالحاً، أدخله من جديد')}}
     loginModal()});
   $('#edForget')&&$('#edForget').addEventListener('click',()=>{forgetApi();setEdit(false);toast('تم الخروج وحذف الرمز من هذا الجهاز')});
@@ -1502,7 +1553,7 @@ function useSnapshot(){
 </script>
 <script>
 (function(){
- const APP_V='1.50';
+ const APP_V='1.51';
  const ICON={sun:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',moon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z"/></svg>'};
  let theme='dark';try{theme=localStorage.getItem('tb-theme')||'dark'}catch(e){}
  function applyTheme(){document.documentElement.setAttribute('data-theme',theme);document.querySelectorAll('.logo-tile img,.s-id img,.bgdeco .wm').forEach(i=>{i.src=theme==='light'?'img/logo-color.png':'img/logo-white.png'});const m=document.querySelector('meta[name=theme-color]');if(m)m.content=theme==='light'?'#F5F7FC':'#061452';
