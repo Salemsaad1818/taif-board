@@ -165,8 +165,9 @@ async function readConfig(stateFacilities) {
   if (hasDB()) { const raw = await redis('GET', K.cfg); if (raw) cfg = JSON.parse(raw); }
   cfg.facilityPins = cfg.facilityPins || {};
   cfg.admins = cfg.admins || [];
-  const used = new Set([process.env.ADMIN_PIN || '', process.env.VP_PIN || '', cfg.opsPin || '', ...Object.values(cfg.facilityPins)]);
+  const used = new Set([process.env.ADMIN_PIN || '', process.env.VP_PIN || '', cfg.opsPin || '', cfg.qfsPin || '', ...Object.values(cfg.facilityPins)]);
   if (!cfg.opsPin) { cfg.opsPin = process.env.OPS_PIN_SEED || genPin(used); dirty = true; }
+  if (!cfg.qfsPin) { cfg.qfsPin = process.env.QFS_PIN_SEED || genPin(used); dirty = true; }
   for (const fid of Object.keys(stateFacilities || {})) if (!cfg.facilityPins[fid]) { cfg.facilityPins[fid] = genPin(used); dirty = true; }
   if (dirty && hasDB()) await writeConfig(cfg);
   return { cfg, blobs: [] };
@@ -200,6 +201,7 @@ async function auth(req, opts) {
   }
   if (process.env.VP_PIN && got === process.env.VP_PIN) return { role: 'ops', vp: true, cfg, blobs };
   if (got === cfg.opsPin) return { role: 'ops', cfg, blobs };
+  if (cfg.qfsPin && got === cfg.qfsPin) return { role: 'ops', qfs: true, cfg, blobs };
   const fid = Object.keys(cfg.facilityPins).find(k => cfg.facilityPins[k] === got && (facilities || {})[k]);
   if (fid) return { role: 'facility', fid, cfg, blobs };
   return { error: 'pin', status: 401 };

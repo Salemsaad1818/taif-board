@@ -40,8 +40,8 @@ module.exports = async (req, res) => {
     const a = await auth(req, { login, facilities: state.facilities });
     if (a.error) return res.status(a.status).json({ error: a.error });
     if (ops.every(o => o.op === 'ping')) {
-      if (login) await appendLog([{ at: Date.now(), by: editorName(req), role: a.role, fid: a.fid || '', action: 'دخول', target: a.vp ? 'نائب الرئيس التنفيذي للتشغيل' : '', name: '', fac: a.fid ? ((state.facilities || {})[a.fid] || {}).name || '' : '', device: deviceLabel(req), changes: [] }]).catch(() => {});
-      return res.status(200).json({ role: a.role, fid: a.fid || '', vp: !!a.vp });
+      if (login) await appendLog([{ at: Date.now(), by: editorName(req), role: a.role, fid: a.fid || '', action: 'دخول', target: a.vp ? 'نائب الرئيس التنفيذي للتشغيل' : a.qfs ? 'جودة وسلامة المرافق' : '', name: '', fac: a.fid ? ((state.facilities || {})[a.fid] || {}).name || '' : '', device: deviceLabel(req), changes: [] }]).catch(() => {});
+      return res.status(200).json({ role: a.role, fid: a.fid || '', vp: !!a.vp, qfs: !!a.qfs });
     }
     const by = editorName(req), at = Date.now(), entries = [];
     let changed = false;
