@@ -1,4 +1,4 @@
-const { readState, writeState, auth, editorName, deviceLabel, appendLog, describe } = require('./_store');
+const { hasDB, readState, writeState, auth, editorName, deviceLabel, appendLog, describe } = require('./_store');
 const COLS = ['sections', 'links', 'days'];
 const ID = /^[A-Za-z0-9_-]{1,64}$/;
 const URLRE = /^(https?:\/\/|tel:[0-9+]+$)/i;
@@ -18,6 +18,7 @@ module.exports = async (req, res) => {
       return res.status(200).json(hits ? { ...state, hits } : state);
     }
     if (req.method !== 'POST') return res.status(405).json({ error: 'method' });
+    if (!hasDB()) return res.status(503).json({ error: 'nodb' });
     const ops = Array.isArray(req.body?.ops) ? req.body.ops : [req.body || {}];
     const login = ops.some(o => o.op === 'ping' && o.login);
     const a = await auth(req, { login });

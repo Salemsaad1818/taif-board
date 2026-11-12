@@ -80,7 +80,7 @@ function write(c,id,op,data){
   if(!S.db||S.readonly){toast('سجّل الدخول لحفظ التغييرات');return Promise.resolve()}
   if(data)data.updatedAt=Date.now();
   saveN++;setSave('saving');
-  chain=chain.then(()=>S.db.send({c,id,op,data})).then(()=>{if(--saveN<=0){saveN=0;setSave('saved')}}).catch(e=>{saveN=Math.max(0,saveN-1);setSave('failed');toast(e&&e.code==='permission_denied'?'انتهت صلاحية الدخول، ادخل مرة ثانية':e&&e.code==='bad url'?'الرابط لازم يبدأ بـ https://':'تعذّر الحفظ، حاول مرة أخرى')});
+  chain=chain.then(()=>S.db.send({c,id,op,data})).then(()=>{if(--saveN<=0){saveN=0;setSave('saved')}}).catch(e=>{saveN=Math.max(0,saveN-1);setSave('failed');toast(e&&e.code==='permission_denied'?'انتهت صلاحية الدخول، ادخل مرة ثانية':e&&e.code==='bad url'?'الرابط لازم يبدأ بـ https://':e&&e.code==='nodb'?'الحفظ متوقف: قاعدة البيانات غير مربوطة بالموقع':'تعذّر الحفظ، حاول مرة أخرى')});
   return chain;
 }
 
@@ -477,7 +477,7 @@ function loginModal(){
     <div class="mrow"><span></span><span><button type="button" class="gbtn sm" data-mclose>إلغاء</button><button class="gbtn sm acc">دخول</button></span></div>`,
   (h,close)=>{setTimeout(()=>h.querySelector(API.name?'#lgPin':'#lgName').focus(),30);h.querySelector('form').onsubmit=async e=>{e.preventDefault();const name=h.querySelector('#lgName').value.trim(),pin=h.querySelector('#lgPin').value.trim();
     let ok=null;try{ok=await S.db.ping(pin,name,true)}catch(err){}
-    if(!ok||ok.error){const er=h.querySelector('#lgErr');er.textContent=ok&&ok.error==='admin-full'?'اكتمل عدد المسؤولين (5 أشخاص). اطلب من مسؤول حالي يزيل أحد المسجلين.':'الرمز غير صحيح، تأكد منه وحاول مرة أخرى.';er.hidden=false;return}
+    if(!ok||ok.error){const er=h.querySelector('#lgErr');er.textContent=ok&&ok.error==='nodb'?'التعديل متوقف حالياً: قاعدة البيانات غير مربوطة بالموقع.':ok&&ok.error==='admin-full'?'اكتمل عدد المسؤولين (5 أشخاص). اطلب من مسؤول حالي يزيل أحد المسجلين.':'الرمز غير صحيح، تأكد منه وحاول مرة أخرى.';er.hidden=false;return}
     API.pin=pin;API.name=name;API.role=ok.role;saveApi();try{sessionStorage.setItem('thc-links-sess','1')}catch(err){}close();setEdit(true);toast('أهلاً '+name+'، دخلت بصلاحية '+(ROLE_N[ok.role]||''))}});
 }
 function apiDb(){let st=null,pending=0;
@@ -487,7 +487,7 @@ function apiDb(){let st=null,pending=0;
     async send(o){pending++;try{const r=await fetch('/api/data',{method:'POST',headers:hdrs({'content-type':'application/json'}),body:JSON.stringify(o)});
       if(r.status===401){setEdit(false);throw {code:'permission_denied'}}
       if(r.status===403){let j={};try{j=await r.json()}catch(e){}if(j.error==='admin-not-registered'){setEdit(false);toast('سجّل الدخول مرة ثانية برمز المسؤول')}throw {code:'forbidden'}}
-      if(r.status===400)throw {code:'bad url'};if(!r.ok)throw {code:'error'};st=await r.json()}finally{pending--}},
+      if(r.status===503)throw {code:'nodb'};      if(r.status===400)throw {code:'bad url'};if(!r.ok)throw {code:'error'};st=await r.json()}finally{pending--}},
     async ping(pin,name,login){const r=await fetch('/api/data',{method:'POST',headers:{'content-type':'application/json','x-edit-pin':pin,'x-device-id':API.dev,'x-editor-name':encodeURIComponent(name||'')},body:JSON.stringify({op:'ping',login:!!login})});let j={};try{j=await r.json()}catch(e){}if(!r.ok)return {error:j.error||'pin'};return {role:j.role}}
   }}
 async function useSnapshot(){try{const s=await (await fetch('/seed.json',{cache:'no-store'})).json();const m=o=>Object.entries(o||{}).map(([id,d])=>({id,...d}));S.sec=m(s.sections);S.links=m(s.links);S.days=m(s.days)}catch(e){}
