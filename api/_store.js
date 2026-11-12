@@ -20,6 +20,15 @@ async function readState() {
     const cur = (state.sections || {})[id];
     if (cur && OLD.includes(String(cur.color).toUpperCase())) cur.color = sec.color;
   }
+  // migration v4: new links and the «أرقام مهمة» section, added once
+  state.mig = state.mig || [];
+  if (!state.mig.includes('v4')) {
+    const V4 = ['apps-11', 'orgs-10', 'systems-27', 'systems-28', 'phones-1', 'phones-2', 'phones-3', 'phones-4', 'phones-5'];
+    state.sections = state.sections || {}; state.links = state.links || {};
+    if (!state.sections.phones) state.sections.phones = seed.sections.phones;
+    for (const id of V4) if (!state.links[id]) state.links[id] = seed.links[id];
+    state.mig.push('v4');
+  }
   return { state, blobs };
 }
 async function writeState(state, oldBlobs) {

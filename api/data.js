@@ -1,7 +1,7 @@
 const { readState, writeState, auth, editorName, deviceLabel, appendLog, describe } = require('./_store');
 const COLS = ['sections', 'links', 'days'];
 const ID = /^[A-Za-z0-9_-]{1,64}$/;
-const URLRE = /^https?:\/\//i;
+const URLRE = /^(https?:\/\/|tel:[0-9+]+$)/i;
 
 function clean(c, d) {
   d = d || {};

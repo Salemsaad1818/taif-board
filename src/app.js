@@ -33,7 +33,7 @@ const IC={
  ios:'<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M11.2 8.4c0-1.5 1.2-2.2 1.3-2.3-.7-1-1.8-1.2-2.2-1.2-.9-.1-1.8.6-2.3.6-.5 0-1.2-.5-2-.5-1 0-2 .6-2.5 1.6-1.1 1.9-.3 4.6.8 6.1.5.7 1.1 1.6 1.9 1.5.8 0 1-.5 2-.5s1.2.5 2 .5c.8 0 1.3-.8 1.8-1.5.6-.8.8-1.6.8-1.7 0 0-1.6-.6-1.6-2.6ZM9.7 3.9c.4-.5.7-1.2.6-1.9-.6 0-1.3.4-1.8.9-.4.4-.7 1.1-.6 1.8.7.1 1.4-.3 1.8-.8Z"/></svg>',
  gp:'<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M2.5 1.6c-.2.2-.3.5-.3.8v11.2c0 .3.1.6.3.8L8.8 8 2.5 1.6Zm7.1 5.6 1.8-1.8L4 1.2l5.6 6Zm0 1.6L4 14.8l7.4-4.2-1.8-1.8Zm4-2-1.9-1.1L9.7 8l2 2 1.9-1.1c.5-.3.5-1.1 0-1.1Z"/></svg>'
 };
-const secIcon=id=>IC[id]||IC.link;
+const secIcon=id=>IC[id]||(id==='phones'?sv(LI.phone,1.9):IC.link);
 
 const S={sec:[],links:[],days:[],view:'home',sid:'',q:'',fav:[],recent:[],theme:'dark',readonly:true,loaded:false,db:null,sync:{ok:true,at:0}};
 try{const p=JSON.parse(localStorage.getItem('thc-links2')||'{}');Object.assign(S,{view:p.view||'home',sid:p.sid||'',fav:Array.isArray(p.fav)?p.fav:[],recent:Array.isArray(p.recent)?p.recent:[],theme:p.theme||((window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light')})}catch(e){}
@@ -49,7 +49,7 @@ const DAYF=new Intl.DateTimeFormat('ar-SA-u-ca-gregory-nu-latn',{weekday:'long',
 const TF12=new Intl.DateTimeFormat('ar-SA-u-nu-latn',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:'Asia/Riyadh'});
 const TODAY=new Date();TODAY.setHours(0,0,0,0);
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
-function host(u){try{return new URL(u).hostname.replace(/^www\./,'')}catch(e){return ''}}
+function host(u){if(/^tel:/i.test(u||''))return String(u).slice(4);try{return new URL(u).hostname.replace(/^www\./,'')}catch(e){return ''}}
 function secsSorted(){return S.sec.slice().sort((a,b)=>(a.order??0)-(b.order??0))}
 function secOf(l){return S.sec.find(s=>s.id===l.sid)||{name:'بدون قسم',color:'#8B9BCF',id:''}}
 function sorted(list){return list.slice().sort((a,b)=>(a.order??0)-(b.order??0)||String(a.name).localeCompare(b.name,'ar'))}
@@ -128,7 +128,7 @@ const LI={
  search:'<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/>',
  link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>'
 };
-const DEF_IC={systems:'grid',orgs:'building',refs:'book',apps:'phone',tools:'grid'};
+const DEF_IC={systems:'grid',orgs:'building',refs:'book',apps:'phone',tools:'grid',phones:'phone'};
 function licon(l){const k=l.icon&&LI[l.icon]?l.icon:(DEF_IC[l.sid]||'link');return sv(LI[k],1.9)}
 
 /* ---------- shell ---------- */
@@ -152,6 +152,7 @@ function side(){
   <div class="s-act">
     <button class="s-btn" data-act="export">${IC.dl}<span>تصدير PDF / Excel</span></button>
     <a class="s-btn" href="${FORM}" target="_blank" rel="noopener" style="text-decoration:none">${IC.msg}<span>للملاحظات والاستفسارات</span></a>
+    <button class="s-btn" data-act="share">${IC.ext}<span>مشاركة وِجهة</span></button>
     <button class="s-btn" data-act="edit">${S.readonly?IC.pen:IC.out}<span>${S.readonly?'دخول التعديل':'إنهاء التعديل'}</span></button>
     <button class="s-btn" data-act="theme">${S.theme==='light'?IC.moon:IC.sun}<span>${S.theme==='light'?'الوضع الداكن':'الوضع الفاتح'}</span></button>
   </div>
@@ -161,13 +162,13 @@ function header(){return `<div class="id">${brand()}</div>
 function tabbar(){const t=[['home','الرئيسية',IC.home],['all','الأقسام',IC.tools],['days','الأيام الصحية',IC.cal],['fav','المفضلة',IC.star]];
   const on=v=>!S.q.trim()&&(S.view===v||(v==='all'&&S.view==='sec'));
   return t.map(([v,n,ic])=>`<button data-go="${v}" aria-pressed="${on(v)}">${ic}<span>${n}</span></button>`).join('')+(isAdmin()?`<button data-go="log" aria-pressed="${!S.q.trim()&&S.view==='log'}">${IC.log}<span>السجل</span></button>`:'')}
-function footer(){return `<span style="display:flex;flex-direction:column;gap:6px"><span>${BRAND} · ${TAG}</span><b>إعداد وتطوير: سالم سعد الشهري © 2026</b><span class="sy">${syncDot()}${syncTxt()} <span style="opacity:.5">|</span> النسخة ${APP_V}</span></span><a class="lnk" href="${FORM}" target="_blank" rel="noopener">للملاحظات والاستفسارات ↗</a>`}
+function footer(){return `<span style="display:flex;flex-direction:column;gap:6px"><span>${BRAND} · ${TAG}</span><b>إعداد وتطوير: سالم سعد الشهري © 2026</b><span class="sy">${syncDot()}${syncTxt()} <span style="opacity:.5">|</span> النسخة ${APP_V}</span></span><span style="display:flex;gap:16px;flex-wrap:wrap"><button class="lnk" data-act="share">مشاركة وِجهة</button><a class="lnk" href="${FORM}" target="_blank" rel="noopener">للملاحظات والاستفسارات ↗</a></span>`}
 
 /* ---------- pieces ---------- */
 function linkRow(l){const s=secOf(l),f=S.fav.includes(l.id),h=host(l.url);
   return `<div class="lk" style="--c:${s.color}" data-id="${esc(l.id)}">
     <span class="ic">${licon(l)}</span>
-    <a class="tx" href="${esc(openUrl(l))}" target="_blank" rel="noopener" data-open="${esc(l.id)}"><b>${esc(l.name)}</b>${l.desc?`<small>${esc(l.desc)}</small>`:''}${!isApp(l)&&h?`<em>${esc(h)}</em>`:''}</a>
+    <a class="tx" href="${esc(openUrl(l))}" target="_blank" rel="noopener" data-open="${esc(l.id)}"><b>${esc(l.name)}</b>${l.desc?`<small>${esc(l.desc)}</small>`:''}${!isApp(l)&&h&&!/^tel:/i.test(l.url)?`<em>${esc(h)}</em>`:''}</a>
     ${isApp(l)?`<span class="stores">${l.ios?`<a href="${esc(l.ios)}" target="_blank" rel="noopener" data-open="${esc(l.id)}" aria-label="متجر آبل">${IC.ios}<span>آيفون</span></a>`:''}${l.android?`<a href="${esc(l.android)}" target="_blank" rel="noopener" data-open="${esc(l.id)}" aria-label="متجر قوقل">${IC.gp}<span>أندرويد</span></a>`:''}</span>`:''}
     <button class="star" data-fav="${esc(l.id)}" aria-pressed="${f}" aria-label="${f?'إزالة من المفضلة':'تثبيت في المفضلة'}">${f?'★':'☆'}</button>
     <span class="pen">تعديل</span>
@@ -184,15 +185,24 @@ function sbar(){
     ${home?`<div class="gr"><span class="pill2"><i></i>${DAYF.format(new Date())}</span><h1><span id="greet">${greet()}</span>، وش تبي توصل له اليوم؟</h1><p>${S.links.length} رابطاً لأنظمة الوزارة والجهات الصحية والمراجع والتطبيقات، في مكان واحد.</p></div>`:''}
     <div class="srow"><label class="search">${IC.search}<input id="q" type="search" placeholder="ابحث: البريد، موارد، حصن، صحتي…" value="${esc(S.q)}" autocomplete="off" enterkeyhint="search"></label><button class="gbtn mob-x" data-act="export" aria-label="تصدير">${IC.dl}<span>تصدير</span></button></div>
   </div>`}
-const DEFAULT_QUICK=['systems-2','systems-4','systems-8','systems-7','systems-6','systems-15','systems-18','apps-1','systems-16','systems-1','orgs-1','tools-1'];
+const DEFAULT_QUICK=['apps-11','systems-2','systems-4','systems-8','systems-7','systems-6','systems-15','systems-18','apps-1','systems-16','systems-1','phones-1'];
 
+let deferredPrompt=null;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;if(S.view==='home')renderMain()});
+function standalone(){return (window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true}
+function installTip(){let off=false;try{off=localStorage.getItem('wjh-tip')==='off'}catch(e){}
+  if(off||standalone()||window.innerWidth>=1000)return '';
+  const ios=/iPhone|iPad|iPod/i.test(navigator.userAgent);
+  return `<div class="tip"><span class="tipi">${mark('tm')}</span><div class="tipt"><b>ثبّت وِجهة على شاشتك الرئيسية</b><span>${deferredPrompt?'تفتح مثل التطبيق بضغطة وحدة.':ios?'في سفاري اضغط زر المشاركة ثم «إضافة إلى الشاشة الرئيسية».':'من قائمة المتصفح اختر «إضافة إلى الشاشة الرئيسية».'}</span></div>${deferredPrompt?'<button class="gbtn sm acc" data-act="install">تثبيت</button>':''}<button class="tipx" data-act="tipoff" aria-label="إخفاء">✕</button></div>`}
+async function shareSite(){const d={title:'وِجهة · دليل الموظف الصحي',text:'كل الروابط اللي يحتاجها الموظف الصحي في مكان واحد',url:location.origin};
+  try{if(navigator.share){await navigator.share(d);return}}catch(e){return}
+  try{await navigator.clipboard.writeText(d.url);toast('تم نسخ رابط الموقع')}catch(e){toast(d.url)}}
 /* ---------- views ---------- */
 function vHome(){
   const favs=favList();
   const quick=(favs.length?favs:DEFAULT_QUICK.map(id=>S.links.find(l=>l.id===id)).filter(Boolean)).slice(0,12);
   const rec=S.recent.map(id=>S.links.find(l=>l.id===id)).filter(Boolean).filter(l=>!quick.includes(l)).slice(0,6);
   const nd=daysSorted().slice(0,4);
-  return `<section class="block"><div class="bh"><h2>${favs.length?'★ مفضلتك':'الوصول السريع'}</h2><span>${favs.length?'روابطك المثبّتة':'ثبّت أي رابط بالنجمة ☆ ليظهر هنا مكانها'}</span></div>
+  return `${installTip()}<section class="block"><div class="bh"><h2>${favs.length?'★ مفضلتك':'الوصول السريع'}</h2><span>${favs.length?'روابطك المثبّتة':'ثبّت أي رابط بالنجمة ☆ ليظهر هنا مكانها'}</span></div>
     <div class="qgrid">${quick.map(appTile).join('')}</div></section>
   ${rec.length?`<section class="block"><div class="bh"><h2>آخر ما فتحت</h2></div><div class="qgrid sm">${rec.map(appTile).join('')}</div></section>`:''}
   <section class="block"><div class="bh"><h2>تصفّح حسب القسم</h2><span class="ed-only"><button class="gbtn sm" data-act="addSec">${IC.plus}قسم جديد</button></span></div>
@@ -242,6 +252,7 @@ function renderMain(){const m=$('#main');
   if(S.q.trim()){m.innerHTML=vSearch();return}
   if(S.view==='log'){if(!$('#logStats')){m.innerHTML=vLog();loadAdmin();LOG.entries?fillLog():loadLog()}return}
   m.innerHTML=S.view==='sec'?vSec():S.view==='all'?vAll():S.view==='days'?vDays():S.view==='fav'?vFav():vHome();
+  const sc=m.querySelector('.sc[aria-pressed="true"]');if(sc&&sc.parentElement){const p=sc.parentElement;p.scrollLeft=sc.offsetLeft-(p.clientWidth-sc.clientWidth)/2}
 }
 function go(v,sid){S.view=v;S.sid=sid||'';S.q='';const q=$('#q');if(q)q.value='';remember();render();window.scrollTo({top:0,behavior:'smooth'})}
 
@@ -261,7 +272,7 @@ function linkModal(id){
     <div class="f"><label for="dAnd">رابط متجر قوقل (للتطبيقات فقط)</label><input id="dAnd" type="url" dir="ltr" value="${esc(l.android||'')}"></div>
     <p class="note">كل تغيير يُحفظ تلقائياً عند الخروج من الخانة. الروابط تبدأ بـ https://</p>
     <div class="mrow"><button type="button" class="dbtn" id="delLink">حذف الرابط</button><span><a class="gbtn sm" href="${esc(openUrl(l))}" target="_blank" rel="noopener" style="text-decoration:none">فتح ↗</a><button class="gbtn sm acc">تم</button></span></div>`,
-  (h,close)=>{const upd=(k,v)=>{if(String(l[k]??'')===String(v))return;if(['url','ios','android'].includes(k)&&v&&!/^https?:\/\//i.test(v)){toast('الرابط لازم يبدأ بـ https://');return}write('links',l.id,'update',{[k]:v})};
+  (h,close)=>{const upd=(k,v)=>{if(String(l[k]??'')===String(v))return;if(['url','ios','android'].includes(k)&&v&&!/^(https?:\/\/|tel:[0-9+]+$)/i.test(v)){toast('الرابط لازم يبدأ بـ https://');return}write('links',l.id,'update',{[k]:v})};
     h.querySelector('#dName').onchange=e=>upd('name',e.target.value.trim()||'رابط');
     h.querySelectorAll('[data-ic]').forEach(btn=>btn.onclick=()=>{h.querySelectorAll('[data-ic]').forEach(x=>x.setAttribute('aria-pressed',String(x===btn)));upd('icon',btn.dataset.ic)});
     h.querySelector('#dSec').onchange=e=>upd('sid',e.target.value);
@@ -321,6 +332,9 @@ document.addEventListener('click',e=>{
     if(k==='theme')setTheme(S.theme==='light'?'dark':'light');
     else if(k==='edit'){if(S.readonly)loginModal();else setEdit(false)}
     else if(k==='export')exportMenu();
+    else if(k==='share')shareSite();
+    else if(k==='install'){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.finally(()=>{deferredPrompt=null;renderMain()})}}
+    else if(k==='tipoff'){try{localStorage.setItem('wjh-tip','off')}catch(e){}renderMain()}
     else if(k==='addSec')secModal();
     else if(k==='editSec')secModal(a.dataset.sid);
     else if(k==='addLink')addLink(a.dataset.sid);

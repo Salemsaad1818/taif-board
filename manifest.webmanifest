@@ -1,0 +1,16 @@
+{
+  "name": "وِجهة · دليل الموظف الصحي",
+  "short_name": "وِجهة",
+  "description": "كل الروابط اللي يحتاجها الموظف الصحي في مكان واحد",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F2F2F7",
+  "theme_color": "#007AFF",
+  "icons": [
+    { "src": "/img/icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/img/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}
