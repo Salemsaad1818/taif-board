@@ -15,7 +15,7 @@ async function redis(...cmd) {
   return j.result;
 }
 async function redisPipe(cmds) {
-  const r = await fetch(R_URL().replace(/\/$/, '') + '/pipeline', { method: 'POST', headers: { Authorization: 'Bearer ' + R_TOK(), 'content-type': 'application/json' }, body: JSON.stringify(cmds) });
+  const r = await fetch(env('KV_PIPE_URL') || (R_URL().replace(/\/$/, '') + '/pipeline'), { method: 'POST', headers: { Authorization: 'Bearer ' + R_TOK(), 'content-type': 'application/json' }, body: JSON.stringify(cmds) });
   const j = await r.json().catch(() => []);
   if (!r.ok) throw new Error('redis pipe ' + r.status);
   return j.map(x => x.result);
