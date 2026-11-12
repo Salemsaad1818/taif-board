@@ -1,34 +1,27 @@
-const { put, list, del } = require('@vercel/blob');
 const seed = require('../seed.json');
-const PREFIX = 'links/state-';
 
-/* visit counter: the count lives in the blob name (links/hits-<n>-xxxx.txt) */
-const HITP = 'links/hits-', HIT_BASE = 103643;
-const hitNum = b => { const m = /hits-(\d+)/.exec(b.pathname || ''); return m ? +m[1] : 0; };
-async function bumpHits(hb) {
-  hb.sort((a, b) => hitNum(b) - hitNum(a));
-  const n = hb.length ? Math.max(hitNum(hb[0]), HIT_BASE - 1) : HIT_BASE - 1;
-  try {
-    await put(HITP + (n + 1) + '.txt', String(n + 1), { access: 'public', contentType: 'text/plain', addRandomSuffix: true });
-    const stale = hb.slice(2);
-    if (stale.length) del(stale.map(b => b.url)).catch(() => {});
-    return n + 1;
-  } catch (e) { return n; }
+/* ---- storage: Upstash Redis (REST), same database as the improvement board, keys prefixed «lk:» ---- */
+const R_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || '';
+const R_TOK = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '';
+const hasDB = () => !!(R_URL && R_TOK);
+async function redis(...cmd) {
+  if (!hasDB()) throw Object.assign(new Error('no db'), { code: 'nodb' });
+  const r = await fetch(R_URL, { method: 'POST', headers: { Authorization: 'Bearer ' + R_TOK, 'content-type': 'application/json' }, body: JSON.stringify(cmd) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || j.error) throw new Error('redis ' + (j.error || r.status));
+  return j.result;
 }
+async function redisPipe(cmds) {
+  if (!hasDB()) throw Object.assign(new Error('no db'), { code: 'nodb' });
+  const r = await fetch(R_URL.replace(/\/$/, '') + '/pipeline', { method: 'POST', headers: { Authorization: 'Bearer ' + R_TOK, 'content-type': 'application/json' }, body: JSON.stringify(cmds) });
+  const j = await r.json().catch(() => []);
+  if (!r.ok) throw new Error('redis pipe ' + r.status);
+  return j.map(x => x.result);
+}
+const K = { state: 'lk:state', cfg: 'lk:config', log: 'lk:audit', hits: 'lk:hits' };
+const HIT_BASE = 103643;
 
-async function readState(opts) {
-  opts = opts || {};
-  const { blobs: all } = await list({ prefix: opts.hit ? 'links/' : PREFIX, limit: 1000 });
-  const blobs = all.filter(b => (b.pathname || '').startsWith(PREFIX));
-  const hits = opts.hit ? await bumpHits(all.filter(b => (b.pathname || '').startsWith(HITP))) : undefined;
-  let state;
-  if (!blobs.length) state = JSON.parse(JSON.stringify(seed));
-  else {
-    blobs.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-    const r = await fetch(blobs[0].url, { cache: 'no-store' });
-    if (!r.ok) throw new Error('read failed');
-    state = await r.json();
-  }
+function migrate(state) {
   // migration v2: add an icon to seeded links that have none (never overwrites edits)
   for (const [id, l] of Object.entries(seed.links || {})) {
     const cur = (state.links || {})[id];
@@ -49,38 +42,44 @@ async function readState(opts) {
     for (const id of V4) if (!state.links[id]) state.links[id] = seed.links[id];
     state.mig.push('v4');
   }
-  return { state, blobs, hits };
+  return state;
 }
-async function writeState(state, oldBlobs) {
+
+async function readState(opts) {
+  opts = opts || {};
+  let state = null, hits;
+  if (hasDB()) {
+    if (opts.hit) {
+      const res = await redisPipe([['GET', K.state], ['SET', K.hits, HIT_BASE - 1, 'NX'], ['INCR', K.hits]]);
+      if (res[0]) state = JSON.parse(res[0]);
+      hits = +res[2] || undefined;
+    } else {
+      const raw = await redis('GET', K.state);
+      if (raw) state = JSON.parse(raw);
+    }
+  }
+  if (!state) state = JSON.parse(JSON.stringify(seed));
+  return { state: migrate(state), blobs: [], hits };
+}
+async function writeState(state) {
   state.rev = (state.rev || 0) + 1;
   state.savedAt = Date.now();
-  await put(PREFIX + String(state.savedAt).padStart(15, '0') + '.json', JSON.stringify(state), { access: 'public', contentType: 'application/json', addRandomSuffix: true, cacheControlMaxAge: 60 });
-  const stale = oldBlobs.slice(30);
-  if (stale.length) await del(stale.map(b => b.url)).catch(() => {});
+  await redis('SET', K.state, JSON.stringify(state));
   return state;
 }
 
 /* ---- access codes & roles ---- */
-const CFGP = 'links/config-';
 const MAX_ADMINS = 5;
 function genPin(used) { let p; do { p = String(Math.floor(200000 + Math.random() * 799999)); } while (used.has(p)); used.add(p); return p; }
 async function readConfig() {
-  const { blobs } = await list({ prefix: CFGP, limit: 1000 });
   let cfg = {};
-  if (blobs.length) {
-    blobs.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-    const r = await fetch(blobs[0].url, { cache: 'no-store' });
-    if (r.ok) cfg = await r.json();
-  }
+  const raw = await redis('GET', K.cfg);
+  if (raw) cfg = JSON.parse(raw);
   cfg.admins = cfg.admins || [];
-  if (!cfg.opsPin) { cfg.opsPin = genPin(new Set([process.env.ADMIN_PIN || ''])); await writeConfig(cfg, blobs); }
-  return { cfg, blobs };
+  if (!cfg.opsPin) { cfg.opsPin = genPin(new Set([process.env.ADMIN_PIN || ''])); await writeConfig(cfg); }
+  return { cfg, blobs: [] };
 }
-async function writeConfig(cfg, oldBlobs) {
-  await put(CFGP + String(Date.now()).padStart(15, '0') + '.json', JSON.stringify(cfg), { access: 'public', contentType: 'application/json', addRandomSuffix: true, cacheControlMaxAge: 60 });
-  const stale = (oldBlobs || []).slice(3);
-  if (stale.length) await del(stale.map(b => b.url)).catch(() => {});
-}
+async function writeConfig(cfg) { await redis('SET', K.cfg, JSON.stringify(cfg)); }
 function deviceLabel(req) {
   const ua = String(req.headers['user-agent'] || '');
   return /iPhone/.test(ua) ? 'آيفون' : /iPad/.test(ua) ? 'آيباد' : /Android/.test(ua) ? 'أندرويد' : /Windows/.test(ua) ? 'ويندوز' : /Mac OS/.test(ua) ? 'ماك' : 'جهاز آخر';
@@ -110,22 +109,15 @@ async function auth(req, opts) {
   return { error: 'pin', status: 401 };
 }
 
+
 /* ---- audit log (admin only) ---- */
-const LOGP = 'links/audit-';
 async function readLog() {
-  const { blobs } = await list({ prefix: LOGP, limit: 1000 });
-  if (!blobs.length) return { log: [], blobs: [] };
-  blobs.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-  const r = await fetch(blobs[0].url, { cache: 'no-store' });
-  return { log: r.ok ? await r.json() : [], blobs };
+  const arr = await redis('LRANGE', K.log, 0, 4999);
+  return { log: (arr || []).map(x => { try { return JSON.parse(x); } catch (e) { return null; } }).filter(Boolean), blobs: [] };
 }
 async function appendLog(entries) {
   if (!entries.length) return;
-  const { log, blobs } = await readLog();
-  const next = entries.concat(log).slice(0, 5000);
-  await put(LOGP + String(Date.now()).padStart(15, '0') + '.json', JSON.stringify(next), { access: 'public', contentType: 'application/json', addRandomSuffix: true, cacheControlMaxAge: 60 });
-  const stale = blobs.slice(4);
-  if (stale.length) await del(stale.map(b => b.url)).catch(() => {});
+  await redisPipe([['LPUSH', K.log, ...entries.slice().reverse().map(e => JSON.stringify(e))], ['LTRIM', K.log, 0, 4999]]);
 }
 
 const TGT = { links: 'رابط', sections: 'قسم', days: 'يوم صحي' };
@@ -149,4 +141,5 @@ function describe(st, o) {
   return { action: 'تعديل', target, name, fac: sec, changes: ch };
 }
 
-module.exports = { readState, writeState, auth, readConfig, writeConfig, deviceLabel, MAX_ADMINS, editorName, readLog, appendLog, describe };
+
+module.exports = { hasDB, readState, writeState, auth, readConfig, writeConfig, deviceLabel, MAX_ADMINS, editorName, readLog, appendLog, describe };
