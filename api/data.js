@@ -13,8 +13,9 @@ module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   try {
     if (req.method === 'GET') {
-      const { state } = await readState();
-      return res.status(200).json(state);
+      const hit = String((req.query && req.query.hit) || '') === '1';
+      const { state, hits } = await readState({ hit });
+      return res.status(200).json(hits ? { ...state, hits } : state);
     }
     if (req.method !== 'POST') return res.status(405).json({ error: 'method' });
     const ops = Array.isArray(req.body?.ops) ? req.body.ops : [req.body || {}];

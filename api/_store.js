@@ -2,13 +2,33 @@ const { put, list, del } = require('@vercel/blob');
 const seed = require('../seed.json');
 const PREFIX = 'links/state-';
 
-async function readState() {
-  const { blobs } = await list({ prefix: PREFIX, limit: 1000 });
-  if (!blobs.length) return { state: JSON.parse(JSON.stringify(seed)), blobs: [] };
-  blobs.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-  const r = await fetch(blobs[0].url, { cache: 'no-store' });
-  if (!r.ok) throw new Error('read failed');
-  const state = await r.json();
+/* visit counter: the count lives in the blob name (links/hits-<n>-xxxx.txt) */
+const HITP = 'links/hits-', HIT_BASE = 103643;
+const hitNum = b => { const m = /hits-(\d+)/.exec(b.pathname || ''); return m ? +m[1] : 0; };
+async function bumpHits(hb) {
+  hb.sort((a, b) => hitNum(b) - hitNum(a));
+  const n = hb.length ? Math.max(hitNum(hb[0]), HIT_BASE - 1) : HIT_BASE - 1;
+  try {
+    await put(HITP + (n + 1) + '.txt', String(n + 1), { access: 'public', contentType: 'text/plain', addRandomSuffix: true });
+    const stale = hb.slice(2);
+    if (stale.length) del(stale.map(b => b.url)).catch(() => {});
+    return n + 1;
+  } catch (e) { return n; }
+}
+
+async function readState(opts) {
+  opts = opts || {};
+  const { blobs: all } = await list({ prefix: opts.hit ? 'links/' : PREFIX, limit: 1000 });
+  const blobs = all.filter(b => (b.pathname || '').startsWith(PREFIX));
+  const hits = opts.hit ? await bumpHits(all.filter(b => (b.pathname || '').startsWith(HITP))) : undefined;
+  let state;
+  if (!blobs.length) state = JSON.parse(JSON.stringify(seed));
+  else {
+    blobs.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
+    const r = await fetch(blobs[0].url, { cache: 'no-store' });
+    if (!r.ok) throw new Error('read failed');
+    state = await r.json();
+  }
   // migration v2: add an icon to seeded links that have none (never overwrites edits)
   for (const [id, l] of Object.entries(seed.links || {})) {
     const cur = (state.links || {})[id];
@@ -29,7 +49,7 @@ async function readState() {
     for (const id of V4) if (!state.links[id]) state.links[id] = seed.links[id];
     state.mig.push('v4');
   }
-  return { state, blobs };
+  return { state, blobs, hits };
 }
 async function writeState(state, oldBlobs) {
   state.rev = (state.rev || 0) + 1;

@@ -132,6 +132,9 @@ const LI={
 const DEF_IC={systems:'grid',orgs:'building',refs:'book',apps:'phone',tools:'grid',phones:'phone'};
 function licon(l){const k=l.icon&&LI[l.icon]?l.icon:(DEF_IC[l.sid]||'link');return sv(LI[k],1.9)}
 
+const NF=new Intl.NumberFormat('en-US');
+function hitsTxt(){return S.hits?NF.format(S.hits):''}
+const EYE=sv('<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>');
 /* ---------- shell ---------- */
 function syncDot(){return `<i style="background:${S.sync.ok?'#22C55E':'#F43F5E'}"></i>`}
 function syncTxt(){return S.sync.at?(S.sync.ok?'متزامن':'تعذّر التحديث'):'جارٍ الاتصال…'}
@@ -157,13 +160,13 @@ function side(){
     <button class="s-btn" data-act="edit">${S.readonly?IC.pen:IC.out}<span>${S.readonly?'دخول التعديل':'إنهاء التعديل'}</span></button>
     <button class="s-btn" data-act="theme">${S.theme==='light'?IC.moon:IC.sun}<span>${S.theme==='light'?'الوضع الداكن':'الوضع الفاتح'}</span></button>
   </div>
-  <div class="s-foot"><span>${syncDot()}${syncTxt()} · النسخة ${APP_V}</span><b>إعداد وتطوير: سالم سعد الشهري</b></div>`}
+  <div class="s-foot">${S.hits?`<span class="s-hits">${EYE}<b class="tab-num">${hitsTxt()}</b> زيارة للموقع</span>`:''}<span>${syncDot()}${syncTxt()} · النسخة ${APP_V}</span><b>إعداد وتطوير: سالم سعد الشهري</b></div>`}
 function header(){return `<div class="id">${brand()}</div>
   <div class="acts"><a class="ibtn" href="${FORM}" target="_blank" rel="noopener" aria-label="للملاحظات والاستفسارات">${IC.msg}</a><button class="ibtn${S.readonly?'':' on'}" data-act="edit" aria-label="${S.readonly?'دخول التعديل':'إنهاء التعديل'}">${S.readonly?IC.pen:IC.out}</button><button class="ibtn" data-act="theme" aria-label="تبديل الثيم">${S.theme==='light'?IC.moon:IC.sun}</button></div>`}
 function tabbar(){const t=[['home','الرئيسية',IC.home],['all','الأقسام',IC.tools],['days','الأيام الصحية',IC.cal],['fav','المفضلة',IC.star]];
   const on=v=>!S.q.trim()&&(S.view===v||(v==='all'&&S.view==='sec'));
   return t.map(([v,n,ic])=>`<button data-go="${v}" aria-pressed="${on(v)}">${ic}<span>${n}</span></button>`).join('')+(isAdmin()?`<button data-go="log" aria-pressed="${!S.q.trim()&&S.view==='log'}">${IC.log}<span>السجل</span></button>`:'')}
-function footer(){return `<span style="display:flex;flex-direction:column;gap:6px"><span>${BRAND} · ${TAG}</span><b>إعداد وتطوير: سالم سعد الشهري © 2026</b><span class="sy">${syncDot()}${syncTxt()} <span style="opacity:.5">|</span> النسخة ${APP_V}</span></span><span style="display:flex;gap:16px;flex-wrap:wrap"><button class="lnk" data-act="share">مشاركة وِجهة</button><a class="lnk" href="${FORM}" target="_blank" rel="noopener">للملاحظات والاستفسارات ↗</a></span>`}
+function footer(){return `<span style="display:flex;flex-direction:column;gap:6px"><span>${BRAND} · ${TAG}</span><b>إعداد وتطوير: سالم سعد الشهري © 2026</b><span class="sy">${syncDot()}${syncTxt()} <span style="opacity:.5">|</span> النسخة ${APP_V}${S.hits?` <span style="opacity:.5">|</span> ${hitsTxt()} زيارة`:''}</span></span><span style="display:flex;gap:16px;flex-wrap:wrap"><button class="lnk" data-act="share">مشاركة وِجهة</button><a class="lnk" href="${FORM}" target="_blank" rel="noopener">للملاحظات والاستفسارات ↗</a></span>`}
 
 /* ---------- pieces ---------- */
 function linkRow(l){const s=secOf(l),f=S.fav.includes(l.id),h=host(l.url);
@@ -183,7 +186,7 @@ function greet(){const h=+new Intl.DateTimeFormat('en-US',{hour:'numeric',hour12
 function sbar(){
   const home=S.view==='home'&&!S.q.trim();
   return `<div class="sbar${home?' big':''}">
-    ${home?`<div class="gr"><span class="pill2"><i></i>${DAYF.format(new Date())}</span><h1><span id="greet">${greet()}</span>، وش تبي توصل له اليوم؟</h1><p>${S.links.length} رابطاً لأنظمة الوزارة والجهات الصحية والمراجع والتطبيقات، في مكان واحد.</p></div>`:''}
+    ${home?`<div class="gr"><span class="pills"><span class="pill2"><i></i>${DAYF.format(new Date())}</span>${S.hits?`<span class="pill2 hits" id="hitsPill">${EYE}<b class="tab-num">${hitsTxt()}</b> زيارة</span>`:''}</span><h1><span id="greet">${greet()}</span>، وش تبي توصل له اليوم؟</h1><p>${S.links.length} رابطاً لأنظمة الوزارة والجهات الصحية والمراجع والتطبيقات، في مكان واحد.</p></div>`:''}
     <div class="srow"><label class="search">${IC.search}<input id="q" type="search" placeholder="ابحث: البريد، موارد، حصن، صحتي…" value="${esc(S.q)}" autocomplete="off" enterkeyhint="search"></label><button class="gbtn mob-x" data-act="export" aria-label="تصدير">${IC.dl}<span>تصدير</span></button></div>
   </div>`}
 const DEFAULT_QUICK=['apps-11','systems-2','systems-4','systems-8','systems-7','systems-6','systems-15','systems-18','apps-1','systems-16','systems-1','phones-1'];
@@ -240,7 +243,7 @@ function vLog(){return `<div class="sh"><div><h2>السجل والرموز</h2><
 let lastSbar='';
 function render(){
   $('#side').innerHTML=side();$('#hd').innerHTML=header();$('#tabbar').innerHTML=tabbar();$('#ft').innerHTML=footer();
-  const key=(S.view==='home'&&!S.q.trim()?'h':'c')+S.links.length;
+  const key=(S.view==='home'&&!S.q.trim()?'h':'c')+S.links.length+':'+(S.hits||0);
   if(!$('#q')||lastSbar!==key){const had=document.activeElement&&document.activeElement.id==='q';$('#sbarw').innerHTML=sbar();lastSbar=key;if(had){const q=$('#q');q.focus();q.setSelectionRange(q.value.length,q.value.length)}}
   $('#eb').hidden=S.readonly;$('#ebName').textContent=(API.name||'')+' ('+(ROLE_N[API.role]||'')+')';
   document.body.classList.toggle('editing',!S.readonly);
@@ -479,7 +482,7 @@ function loginModal(){
 function apiDb(){let st=null,pending=0;
   const apply=j=>{st=j;const m=o=>Object.entries(o||{}).map(([id,d])=>({id,...d}));S.sec=m(j.sections);S.links=m(j.links);S.days=m(j.days);S.loaded=true};
   return{
-    async pull(){if(pending)return;const r=await fetch('/api/data',{cache:'no-store'});if(!r.ok)throw new Error('load');const j=await r.json();S.sync={ok:true,at:Date.now()};if(pending)return;if(!st||j.rev!==st.rev){apply(j);if(!document.querySelector('.modal'))render()}},
+    async pull(hit){if(pending)return;const r=await fetch('/api/data'+(hit?'?hit=1':''),{cache:'no-store'});if(!r.ok)throw new Error('load');const j=await r.json();if(j.hits){S.hits=j.hits;delete j.hits}S.sync={ok:true,at:Date.now()};if(pending)return;if(!st||j.rev!==st.rev){apply(j);if(!document.querySelector('.modal'))render()}},
     async send(o){pending++;try{const r=await fetch('/api/data',{method:'POST',headers:hdrs({'content-type':'application/json'}),body:JSON.stringify(o)});
       if(r.status===401){setEdit(false);throw {code:'permission_denied'}}
       if(r.status===403){let j={};try{j=await r.json()}catch(e){}if(j.error==='admin-not-registered'){setEdit(false);toast('سجّل الدخول مرة ثانية برمز المسؤول')}throw {code:'forbidden'}}
@@ -490,11 +493,11 @@ async function useSnapshot(){try{const s=await (await fetch('/seed.json',{cache:
   S.loaded=true;S.readonly=true;S.sync={ok:false,at:Date.now()};render()}
 async function start(){
   const db=apiDb();S.db=db;render();
-  try{await db.pull()}catch(e){await useSnapshot();return}
+  try{await db.pull(true)}catch(e){await useSnapshot();return}
   S.readonly=!API.pin;render();
   if(API.pin){let seen=false;try{seen=sessionStorage.getItem('thc-links-sess')==='1'}catch(e){}
     if(!seen)db.ping(API.pin,API.name,true).then(r=>{if(!r||r.error){setEdit(false);return}try{sessionStorage.setItem('thc-links-sess','1')}catch(e){}if(r.role!==API.role){API.role=r.role;saveApi();render()}}).catch(()=>{})}
-  setInterval(()=>{if(document.visibilityState==='visible')db.pull().catch(()=>{S.sync={ok:false,at:Date.now()};if(!document.querySelector('.modal'))render()})},30000);
+  setInterval(()=>{if(document.visibilityState==='visible')db.pull().catch(()=>{S.sync={ok:false,at:Date.now()};if(!document.querySelector('.modal'))render()})},60000);
 }
 start();
 })();
