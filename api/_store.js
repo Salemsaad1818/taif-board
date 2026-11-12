@@ -66,6 +66,11 @@ function migrate(state) {
     for (const id of V4) if (!state.links[id]) state.links[id] = seed.links[id];
     state.mig.push('v4');
   }
+  // migration v5: removed أسعفني، أوتار، MOH Formulary (once)
+  if (!state.mig.includes('v5')) {
+    for (const id of ['apps-6', 'apps-8', 'apps-10']) if (state.links) delete state.links[id];
+    state.mig.push('v5');
+  }
   return state;
 }
 
