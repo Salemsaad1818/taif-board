@@ -8,7 +8,19 @@ async function readState() {
   blobs.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
   const r = await fetch(blobs[0].url, { cache: 'no-store' });
   if (!r.ok) throw new Error('read failed');
-  return { state: await r.json(), blobs };
+  const state = await r.json();
+  // migration v2: add an icon to seeded links that have none (never overwrites edits)
+  for (const [id, l] of Object.entries(seed.links || {})) {
+    const cur = (state.links || {})[id];
+    if (cur && !cur.icon && l.icon) cur.icon = l.icon;
+  }
+  // migration v3: Apple palette for the seeded sections, only if still on an older default colour
+  const OLD = ['#2BD4F0', '#A78BFA', '#F5A524', '#34D399', '#60A5FA', '#56A7DD', '#63BDC1', '#A6C955', '#62A752', '#A09FA3'];
+  for (const [id, sec] of Object.entries(seed.sections || {})) {
+    const cur = (state.sections || {})[id];
+    if (cur && OLD.includes(String(cur.color).toUpperCase())) cur.color = sec.color;
+  }
+  return { state, blobs };
 }
 async function writeState(state, oldBlobs) {
   state.rev = (state.rev || 0) + 1;
@@ -88,7 +100,7 @@ async function appendLog(entries) {
 }
 
 const TGT = { links: 'رابط', sections: 'قسم', days: 'يوم صحي' };
-const LBL = { name: 'الاسم', url: 'الرابط', desc: 'الوصف', sid: 'القسم', ios: 'رابط App Store', android: 'رابط Google Play', color: 'اللون', m: 'الشهر', d: 'اليوم' };
+const LBL = { icon: 'الأيقونة', name: 'الاسم', url: 'الرابط', desc: 'الوصف', sid: 'القسم', ios: 'رابط App Store', android: 'رابط Google Play', color: 'اللون', m: 'الشهر', d: 'اليوم' };
 const short = v => { v = String(v ?? ''); return v.length > 90 ? v.slice(0, 90) + '…' : v; };
 function describe(st, o) {
   const col = st[o.c] || {}, before = col[o.id], target = TGT[o.c] || o.c;
