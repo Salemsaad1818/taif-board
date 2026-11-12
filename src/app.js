@@ -27,6 +27,7 @@ const IC={
  msg:sv('<path d="M4 5h16v11H9l-5 4z"/>'),
  search:sv('<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/>',2),
  ext:sv('<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',2),
+back:sv('<path d="m9 5 7 7-7 7"/>',2.4),
  plus:sv('<path d="M12 5v14M5 12h14"/>',2.2),
  portal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/></svg>',
  pa:'<svg class="pa" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>',
@@ -196,6 +197,8 @@ function installTip(){let off=false;try{off=localStorage.getItem('wjh-tip')==='o
 async function shareSite(){const d={title:'وِجهة · دليل الموظف الصحي',text:'كل الروابط اللي يحتاجها الموظف الصحي في مكان واحد',url:location.origin};
   try{if(navigator.share){await navigator.share(d);return}}catch(e){return}
   try{await navigator.clipboard.writeText(d.url);toast('تم نسخ رابط الموقع')}catch(e){toast(d.url)}}
+function folder(s){const ls=sorted(inSec(s.id));const four=ls.slice(0,4);
+  return `<button class="fold" style="--c:${s.color}" data-go="sec" data-sid="${s.id}"><span class="f4">${four.map(l=>`<span class="fi" style="--c:${s.color}">${licon(l)}</span>`).join('')}${four.length<4?Array(4-four.length).fill('<span class="fi e"></span>').join(''):''}</span><span class="fn"><span class="si">${secIcon(s.id)}</span><b>${esc(s.name)}</b></span><small>${ls.length} ${ls.length===1?'رابط':ls.length===2?'رابطان':ls.length<=10?'روابط':'رابطاً'}</small></button>`}
 /* ---------- views ---------- */
 function vHome(){
   const favs=favList();
@@ -205,19 +208,16 @@ function vHome(){
   return `${installTip()}<section class="block"><div class="bh"><h2>${favs.length?'★ مفضلتك':'الوصول السريع'}</h2><span>${favs.length?'روابطك المثبّتة':'ثبّت أي رابط بالنجمة ☆ ليظهر هنا مكانها'}</span></div>
     <div class="qgrid">${quick.map(appTile).join('')}</div></section>
   ${rec.length?`<section class="block"><div class="bh"><h2>آخر ما فتحت</h2></div><div class="qgrid sm">${rec.map(appTile).join('')}</div></section>`:''}
-  <section class="block"><div class="bh"><h2>تصفّح حسب القسم</h2><span class="ed-only"><button class="gbtn sm" data-act="addSec">${IC.plus}قسم جديد</button></span></div>
-  <div class="scards">${secsSorted().map(s=>{const ls=sorted(inSec(s.id));const top=ls.slice(0,5);return `<div class="scard" style="--c:${s.color}">
-      <button class="sch" data-go="sec" data-sid="${s.id}"><span class="si">${secIcon(s.id)}</span><span class="st"><b>${esc(s.name)}</b><small>${ls.length} رابط</small></span><span class="sa">عرض الكل ←</span></button>
-      <div class="ml">${top.map(miniRow).join('')||'<p class="note">لا توجد روابط بعد.</p>'}</div>
-    </div>`}).join('')}</div></section>
+  <section class="block"><div class="bh"><h2>الأقسام</h2><span class="ed-only"><button class="gbtn sm" data-act="addSec">${IC.plus}قسم جديد</button></span></div>
+  <div class="lib">${secsSorted().map(folder).join('')}</div></section>
   <section class="block"><div class="bh"><h2>الأيام الصحية القادمة</h2><button class="lnk" data-go="days">التقويم كامل ←</button></div>
     <div class="dstrip">${nd.map(d=>{const n=daysTo(d);return `<button class="dcard${n<=14?' soon':''}" data-go="days"><span class="dbad"><b class="tab-num">${+d.d}</b><small>${MONTHS[d.m-1]}</small></span><b>${esc(d.name)}</b>${cdChip(d)}</button>`}).join('')}</div></section>`}
-function vAll(){return `<div class="sh"><div><h2>كل الأقسام</h2><p>اختر قسماً، أو استخدم البحث فوق</p></div><div class="acts ed-only"><button class="gbtn sm" data-act="addSec">${IC.plus}قسم جديد</button></div></div>
-  ${secsSorted().map(s=>{const ls=sorted(inSec(s.id));return `<div class="grp" style="--c:${s.color}"><button class="gh" data-go="sec" data-sid="${s.id}"><span class="si">${secIcon(s.id)}</span><b>${esc(s.name)}</b><span>${ls.length} رابط</span><span class="sp"></span><span class="lnk">فتح القسم ←</span></button><div class="lgrid${ls.some(isApp)?' apps':''}">${ls.map(linkRow).join('')}</div></div>`}).join('')}`}
+function vAll(){return `<div class="sh"><div><h2>الأقسام</h2><p>اختر القسم اللي تبيه</p></div><div class="acts ed-only"><button class="gbtn sm" data-act="addSec">${IC.plus}قسم جديد</button></div></div>
+  <div class="lib">${secsSorted().map(folder).join('')}</div>`}
 function vSec(){
   const s=S.sec.find(x=>x.id===S.sid);if(!s){S.view='home';return vHome()}
   const ls=sorted(inSec(s.id));
-  return `${secChips()}<div class="sh" style="--c:${s.color}"><div><h2><span class="si big">${secIcon(s.id)}</span>${esc(s.name)}</h2><p>${ls.length} رابط${s.id==='apps'?' · لكل تطبيق زر للآيفون وزر للأندرويد':' · اضغط الاسم للفتح، والنجمة للتثبيت'}</p></div>
+  return `<button class="back" data-go="all">${IC.back}الأقسام</button><div class="sh" style="--c:${s.color}"><div><h2><span class="si big">${secIcon(s.id)}</span>${esc(s.name)}</h2><p>${ls.length} رابط${s.id==='apps'?' · لكل تطبيق زر للآيفون وزر للأندرويد':' · اضغط الاسم للفتح، والنجمة للتثبيت'}</p></div>
     <div class="acts ed-only"><button class="gbtn sm" data-act="editSec" data-sid="${s.id}">${IC.pen}تعديل القسم</button><button class="gbtn sm acc" data-act="addLink" data-sid="${s.id}">${IC.plus}رابط جديد</button></div></div>
   ${ls.length?`<div class="lgrid${ls.some(isApp)?' apps':''}">${ls.map(linkRow).join('')}</div>`:emptyBox('لا توجد روابط في هذا القسم','',S.readonly?'':`<button class="gbtn sm acc" data-act="addLink" data-sid="${s.id}">${IC.plus}أضف أول رابط</button>`)}`}
 function vSearch(){const q=S.q.trim();const res=S.links.filter(l=>matchQ(l,q));
