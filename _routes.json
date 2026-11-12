@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "include": ["/api/*", "/lib/*", "/src/*", "/functions/*", "/build.sh", "/package.json", "/vercel.json", "/.gitignore", "/_routes.json", "/README.md"],
+  "exclude": []
+}

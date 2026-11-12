@@ -1,24 +1,38 @@
 const seed = require('../seed.json');
 
-/* ---- storage: Upstash Redis (REST), same database as the improvement board, keys prefixed «lk:» ---- */
-const R_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || '';
-const R_TOK = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '';
-const hasDB = () => !!(R_URL && R_TOK);
+/* ---- storage backends: Cloudflare D1 (set by lib/cf.js) or Upstash Redis REST (Vercel) ---- */
+const PENV = (typeof process !== 'undefined' && process.env) ? process.env : {};
+const ENV = {};
+const env = k => (ENV[k] != null && ENV[k] !== '' ? ENV[k] : (PENV[k] || ''));
+let backend = null;
+function setBackend(b, e) { backend = b; Object.assign(ENV, e || {}); }
+const R_URL = () => env('KV_REST_API_URL') || env('UPSTASH_REDIS_REST_URL');
+const R_TOK = () => env('KV_REST_API_TOKEN') || env('UPSTASH_REDIS_REST_TOKEN');
 async function redis(...cmd) {
-  if (!hasDB()) throw Object.assign(new Error('no db'), { code: 'nodb' });
-  const r = await fetch(R_URL, { method: 'POST', headers: { Authorization: 'Bearer ' + R_TOK, 'content-type': 'application/json' }, body: JSON.stringify(cmd) });
+  const r = await fetch(R_URL(), { method: 'POST', headers: { Authorization: 'Bearer ' + R_TOK(), 'content-type': 'application/json' }, body: JSON.stringify(cmd) });
   const j = await r.json().catch(() => ({}));
   if (!r.ok || j.error) throw new Error('redis ' + (j.error || r.status));
   return j.result;
 }
 async function redisPipe(cmds) {
-  if (!hasDB()) throw Object.assign(new Error('no db'), { code: 'nodb' });
-  const r = await fetch(R_URL.replace(/\/$/, '') + '/pipeline', { method: 'POST', headers: { Authorization: 'Bearer ' + R_TOK, 'content-type': 'application/json' }, body: JSON.stringify(cmds) });
+  const r = await fetch(R_URL().replace(/\/$/, '') + '/pipeline', { method: 'POST', headers: { Authorization: 'Bearer ' + R_TOK(), 'content-type': 'application/json' }, body: JSON.stringify(cmds) });
   const j = await r.json().catch(() => []);
   if (!r.ok) throw new Error('redis pipe ' + r.status);
   return j.map(x => x.result);
 }
-const K = { state: 'lk:state', cfg: 'lk:config', log: 'lk:audit', hits: 'lk:hits' };
+const redisBackend = {
+  get: k => redis('GET', 'lk:' + k),
+  set: (k, v) => redis('SET', 'lk:' + k, v),
+  async hit(base) { const r = await redisPipe([['SET', 'lk:hits', base - 1, 'NX'], ['INCR', 'lk:hits']]); return +r[1]; },
+  async logPush(entries) { await redisPipe([['LPUSH', 'lk:audit', ...entries.slice().reverse().map(e => JSON.stringify(e))], ['LTRIM', 'lk:audit', 0, 4999]]); },
+  async logRange() { return ((await redis('LRANGE', 'lk:audit', 0, 4999)) || []).map(x => { try { return JSON.parse(x); } catch (e) { return null; } }).filter(Boolean); }
+};
+function B() {
+  if (backend) return backend;
+  if (R_URL() && R_TOK()) return redisBackend;
+  throw Object.assign(new Error('no db'), { code: 'nodb' });
+}
+const hasDB = () => { try { return !!B(); } catch (e) { return false; } };
 const HIT_BASE = 103643;
 /* daily growth on top of the real count: a random-looking but fixed amount per Riyadh day, from 12 Nov 2026 */
 const BONUS_START = Date.UTC(2026, 10, 12);
@@ -59,14 +73,10 @@ async function readState(opts) {
   opts = opts || {};
   let state = null, hits;
   if (hasDB()) {
-    if (opts.hit) {
-      const res = await redisPipe([['GET', K.state], ['SET', K.hits, HIT_BASE - 1, 'NX'], ['INCR', K.hits]]);
-      if (res[0]) state = JSON.parse(res[0]);
-      hits = res[2] ? +res[2] + dailyBonus() : undefined;
-    } else {
-      const raw = await redis('GET', K.state);
-      if (raw) state = JSON.parse(raw);
-    }
+    const be = B();
+    const raw = await be.get('state');
+    if (raw) state = JSON.parse(raw);
+    if (opts.hit) { try { hits = (await be.hit(HIT_BASE)) + dailyBonus(); } catch (e) { hits = undefined; } }
   }
   if (!state) state = JSON.parse(JSON.stringify(seed));
   return { state: migrate(state), blobs: [], hits };
@@ -74,7 +84,7 @@ async function readState(opts) {
 async function writeState(state) {
   state.rev = (state.rev || 0) + 1;
   state.savedAt = Date.now();
-  await redis('SET', K.state, JSON.stringify(state));
+  await B().set('state', JSON.stringify(state));
   return state;
 }
 
@@ -83,13 +93,13 @@ const MAX_ADMINS = 5;
 function genPin(used) { let p; do { p = String(Math.floor(200000 + Math.random() * 799999)); } while (used.has(p)); used.add(p); return p; }
 async function readConfig() {
   let cfg = {};
-  const raw = await redis('GET', K.cfg);
+  const raw = await B().get('config');
   if (raw) cfg = JSON.parse(raw);
   cfg.admins = cfg.admins || [];
-  if (!cfg.opsPin) { cfg.opsPin = genPin(new Set([process.env.ADMIN_PIN || ''])); await writeConfig(cfg); }
+  if (!cfg.opsPin) { cfg.opsPin = genPin(new Set([env('ADMIN_PIN')])); await writeConfig(cfg); }
   return { cfg, blobs: [] };
 }
-async function writeConfig(cfg) { await redis('SET', K.cfg, JSON.stringify(cfg)); }
+async function writeConfig(cfg) { await B().set('config', JSON.stringify(cfg)); }
 function deviceLabel(req) {
   const ua = String(req.headers['user-agent'] || '');
   return /iPhone/.test(ua) ? 'آيفون' : /iPad/.test(ua) ? 'آيباد' : /Android/.test(ua) ? 'أندرويد' : /Windows/.test(ua) ? 'ويندوز' : /Mac OS/.test(ua) ? 'ماك' : 'جهاز آخر';
@@ -103,7 +113,7 @@ async function auth(req, opts) {
   const got = String(req.headers['x-edit-pin'] || '').trim();
   if (!got) return { error: 'pin', status: 401 };
   const { cfg, blobs } = await readConfig();
-  if (process.env.ADMIN_PIN && got === process.env.ADMIN_PIN) {
+  if (env('ADMIN_PIN') && got === env('ADMIN_PIN')) {
     const dev = String(req.headers['x-device-id'] || '').slice(0, 64);
     if (!dev) return { error: 'device', status: 400 };
     let me = cfg.admins.find(a => a.id === dev);
@@ -121,14 +131,8 @@ async function auth(req, opts) {
 
 
 /* ---- audit log (admin only) ---- */
-async function readLog() {
-  const arr = await redis('LRANGE', K.log, 0, 4999);
-  return { log: (arr || []).map(x => { try { return JSON.parse(x); } catch (e) { return null; } }).filter(Boolean), blobs: [] };
-}
-async function appendLog(entries) {
-  if (!entries.length) return;
-  await redisPipe([['LPUSH', K.log, ...entries.slice().reverse().map(e => JSON.stringify(e))], ['LTRIM', K.log, 0, 4999]]);
-}
+async function readLog() { return { log: await B().logRange(), blobs: [] }; }
+async function appendLog(entries) { if (entries.length) await B().logPush(entries); }
 
 const TGT = { links: 'رابط', sections: 'قسم', days: 'يوم صحي' };
 const LBL = { icon: 'الأيقونة', name: 'الاسم', url: 'الرابط', desc: 'الوصف', sid: 'القسم', ios: 'رابط App Store', android: 'رابط Google Play', color: 'اللون', m: 'الشهر', d: 'اليوم' };
@@ -152,5 +156,5 @@ function describe(st, o) {
 }
 
 
-async function realHits() { try { return +(await redis('GET', K.hits)) || 0; } catch (e) { return 0; } }
-module.exports = { hasDB, realHits, dailyBonus, readState, writeState, auth, readConfig, writeConfig, deviceLabel, MAX_ADMINS, editorName, readLog, appendLog, describe };
+async function realHits() { try { return +(await B().get('hits')) || 0; } catch (e) { return 0; } }
+module.exports = { setBackend, env, hasDB, realHits, dailyBonus, readState, writeState, auth, readConfig, writeConfig, deviceLabel, MAX_ADMINS, editorName, readLog, appendLog, describe };

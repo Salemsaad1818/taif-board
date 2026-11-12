@@ -1,4 +1,4 @@
-const { auth, writeConfig, MAX_ADMINS, realHits, dailyBonus } = require('./_store');
+const { auth, writeConfig, MAX_ADMINS, realHits, dailyBonus, env } = require('./_store');
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
@@ -11,7 +11,7 @@ module.exports = async (req, res) => {
       const b = req.body || {};
       if (b.action === 'removeAdmin') cfg.admins = cfg.admins.filter(x => x.id !== b.id || x.id === me);
       else if (b.action === 'regen' && b.target === 'ops') {
-        let p; do { p = String(Math.floor(200000 + Math.random() * 799999)); } while (p === process.env.ADMIN_PIN || p === cfg.opsPin);
+        let p; do { p = String(Math.floor(200000 + Math.random() * 799999)); } while (p === env('ADMIN_PIN') || p === cfg.opsPin);
         cfg.opsPin = p;
       } else return res.status(400).json({ error: 'bad action' });
       await writeConfig(cfg, blobs);
