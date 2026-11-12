@@ -1,4 +1,4 @@
-const { auth, writeConfig, MAX_ADMINS } = require('./_store');
+const { auth, writeConfig, MAX_ADMINS, realHits, dailyBonus } = require('./_store');
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
@@ -19,7 +19,9 @@ module.exports = async (req, res) => {
     return res.status(200).json({
       opsPin: cfg.opsPin,
       admins: cfg.admins.map(x => ({ id: x.id, name: x.name, device: x.device, at: x.at, last: x.last, me: x.id === me })),
-      maxAdmins: MAX_ADMINS
+      maxAdmins: MAX_ADMINS,
+      hits: await realHits(),
+      bonus: dailyBonus()
     });
   } catch (e) {
     return res.status(500).json({ error: 'server' });

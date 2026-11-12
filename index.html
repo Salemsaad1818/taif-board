@@ -347,7 +347,7 @@ body.editing .dr{cursor:pointer}
 <nav class="tabbar" id="tabbar" aria-label="التنقل"></nav>
 <script>
 (function(){
-const APP_V='2.9';
+const APP_V='2.10';
 const PORTAL='https://taif-ops.vercel.app/?back=1';
 const FORM='https://forms.gle/us3hgom7yADd3Goh7';
 const GCAL='https://calendar.google.com/calendar/embed?mode=AGENDA&showPrint=0&showTz=0&showCalendars=1&ctz=Asia%2FRiyadh&src=thi8lfa3o57nf0enn1iitcnsbc%40group.calendar.google.com&color=%2342d692&src=ar.saudiarabian%23holiday%40group.v.calendar.google.com&color=%2316a765';
@@ -789,7 +789,8 @@ function fillAdmin(){const el=$('#admPanel');if(!el)return;if(ADM.err){el.innerH
   el.innerHTML=`<p class="note">رمز المسؤول يقبل ${d.maxAdmins} أشخاص كحد أقصى، كل واحد على جهازه، ومعه هذا السجل. رمز التشغيل يعدّل كل شيء بدون السجل.</p>
   <div class="arow"><span class="xt"><b>رمز التشغيل</b><small>للفريق اللي يحدّث الروابط</small></span><span class="pinv tab-num">${esc(d.opsPin)}</span><button type="button" class="gbtn sm" data-copy="${esc(d.opsPin)}">نسخ</button><button type="button" class="gbtn sm" data-regen="ops">رمز جديد</button></div>
   ${d.admins.map(a=>`<div class="arow"><span class="lav" style="background:#5856D6">${esc((a.name||'؟').charAt(0))}</span><span class="xt"><b>${esc(a.name||'بدون اسم')}</b>${a.me?' · أنت':''}<small>${esc(a.device||'')} · آخر دخول ${a.last?DS.format(new Date(a.last))+' '+TF12.format(new Date(a.last)):'—'}</small></span>${a.me?'':`<button type="button" class="dbtn" data-rmadmin="${esc(a.id)}">إزالة</button>`}</div>`).join('')}
-  <p class="note">المسؤولون: ${d.admins.length} من ${d.maxAdmins}</p>`;
+  <p class="note">المسؤولون: ${d.admins.length} من ${d.maxAdmins}</p>
+  ${d.hits?`<div class="arow"><span class="xt"><b>عدّاد الزيارات</b><small>المعروض للزوار ${NF.format(d.hits+d.bonus)} = بداية ${NF.format(103642)} + زيارات فعلية ${NF.format(d.hits-103642)} + زيادة يومية تلقائية ${NF.format(d.bonus)}</small></span></div>`:''}`;
   el.onclick=async e=>{const c=e.target.closest('[data-copy]');if(c){try{await navigator.clipboard.writeText(c.dataset.copy);toast('تم نسخ الرمز')}catch(err){toast('الرمز: '+c.dataset.copy)}return}
     const g=e.target.closest('[data-regen]');if(g){if(!g.classList.contains('armed')){g.classList.add('armed');g.textContent='تأكيد؟';return}await loadAdmin({action:'regen',target:'ops'});toast('تم إنشاء رمز جديد، القديم توقف');return}
     const r=e.target.closest('[data-rmadmin]');if(r){if(!r.classList.contains('armed')){r.classList.add('armed');r.textContent='تأكيد الإزالة';return}await loadAdmin({action:'removeAdmin',id:r.dataset.rmadmin});toast('تمت الإزالة')}}}

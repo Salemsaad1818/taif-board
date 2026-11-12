@@ -20,6 +20,16 @@ async function redisPipe(cmds) {
 }
 const K = { state: 'lk:state', cfg: 'lk:config', log: 'lk:audit', hits: 'lk:hits' };
 const HIT_BASE = 103643;
+/* daily growth on top of the real count: a random-looking but fixed amount per Riyadh day, from 12 Nov 2026 */
+const BONUS_START = Date.UTC(2026, 10, 12);
+function dayRand(d) { let x = (d * 2654435761) >>> 0; x ^= x >>> 15; x = Math.imul(x, 2246822519) >>> 0; x ^= x >>> 13; return x / 4294967296; }
+function dailyBonus(now) {
+  const riyadh = (now || Date.now()) + 3 * 3600e3;
+  const days = Math.floor((riyadh - BONUS_START) / 864e5);
+  let b = 0;
+  for (let d = 1; d <= days; d++) b += 90 + Math.floor(dayRand(d) * 170);
+  return b;
+}
 
 function migrate(state) {
   // migration v2: add an icon to seeded links that have none (never overwrites edits)
@@ -52,7 +62,7 @@ async function readState(opts) {
     if (opts.hit) {
       const res = await redisPipe([['GET', K.state], ['SET', K.hits, HIT_BASE - 1, 'NX'], ['INCR', K.hits]]);
       if (res[0]) state = JSON.parse(res[0]);
-      hits = +res[2] || undefined;
+      hits = res[2] ? +res[2] + dailyBonus() : undefined;
     } else {
       const raw = await redis('GET', K.state);
       if (raw) state = JSON.parse(raw);
@@ -142,4 +152,5 @@ function describe(st, o) {
 }
 
 
-module.exports = { hasDB, readState, writeState, auth, readConfig, writeConfig, deviceLabel, MAX_ADMINS, editorName, readLog, appendLog, describe };
+async function realHits() { try { return +(await redis('GET', K.hits)) || 0; } catch (e) { return 0; } }
+module.exports = { hasDB, realHits, dailyBonus, readState, writeState, auth, readConfig, writeConfig, deviceLabel, MAX_ADMINS, editorName, readLog, appendLog, describe };
