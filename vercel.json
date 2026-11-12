@@ -1,1 +1,7 @@
-{ "cleanUrls": true, "git": { "deploymentEnabled": false } }
+{
+  "cleanUrls": true,
+  "git": { "deploymentEnabled": false },
+  "redirects": [
+    { "source": "/(.*)", "has": [{ "type": "host", "value": "taif-links.vercel.app" }], "destination": "https://health-wejha.vercel.app/$1", "permanent": true }
+  ]
+}
