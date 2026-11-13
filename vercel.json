@@ -1,4 +1,5 @@
 {
   "cleanUrls": true,
-  "functions": { "api/upload.js": { "maxDuration": 30 } }
+  "functions": { "api/upload.js": { "maxDuration": 30 }, "api/backup.js": { "maxDuration": 30 }, "api/admin.js": { "maxDuration": 30 } },
+  "crons": [{ "path": "/api/backup", "schedule": "0 0 * * *" }]
 }

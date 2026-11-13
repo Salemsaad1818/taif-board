@@ -1,4 +1,4 @@
-const { auth, redis, hasDB, K } = require('./_store');
+const { auth, redis, hasDB, K, hasBridge, bridge } = require('./_store');
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
@@ -11,8 +11,12 @@ module.exports = async (req, res) => {
   try {
     const chunks = []; let size = 0;
     for await (const ch of req) { size += ch.length; if (size > 3 * 1024 * 1024) return res.status(413).json({ error: 'too big' }); chunks.push(ch); }
+    const buf = Buffer.concat(chunks);
+    if (hasBridge() && buf.length <= 1900000) {
+      try { const r = await bridge('put', { method: 'POST', body: buf, type }); const j = await r.json(); if (j.id) return res.status(200).json({ url: '/api/img?cf=' + j.id }); } catch (e) {}
+    }
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
-    await redis('SET', K.img + id, type + ';' + Buffer.concat(chunks).toString('base64'));
+    await redis('SET', K.img + id, type + ';' + buf.toString('base64'));
     return res.status(200).json({ url: '/api/img?id=' + id });
   } catch (e) {
     return res.status(500).json({ error: 'server' });

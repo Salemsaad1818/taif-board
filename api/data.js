@@ -1,4 +1,4 @@
-const { hasDB, readState, writeState, auth, editorName, deviceLabel, appendLog, describe } = require('./_store');
+const { recordHist, hasDB, readState, writeState, auth, editorName, deviceLabel, appendLog, describe } = require('./_store');
 const COLS = ['facilities', 'projects'];
 const ID = /^[A-Za-z0-9_-]{1,64}$/;
 
@@ -59,6 +59,7 @@ module.exports = async (req, res) => {
     }
     const out = changed ? await writeState(state) : state;
     if (entries.length) await appendLog(entries).catch(() => {});
+    if (changed) await recordHist(out).catch(() => {});
     return res.status(200).json(out);
   } catch (e) {
     return res.status(500).json({ error: 'server' });

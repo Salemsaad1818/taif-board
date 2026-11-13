@@ -1,4 +1,5 @@
-const { auth, readState, writeConfig, MAX_ADMINS } = require('./_store');
+const { auth, readState, writeState, writeConfig, MAX_ADMINS, hasBridge, bridge, appendLog, editorName, deviceLabel, recordHist } = require('./_store');
+const { runBackup } = require('./backup');
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
@@ -9,6 +10,21 @@ module.exports = async (req, res) => {
     const { cfg, blobs } = a;
     if (req.method === 'POST') {
       const b = req.body || {};
+      if (b.action === 'backups') {
+        if (!hasBridge()) return res.status(200).json({ backups: [], nobridge: true });
+        const r = await bridge('backups'); return res.status(200).json(await r.json());
+      }
+      if (b.action === 'backupNow') { if (!hasBridge()) return res.status(503).json({ error: 'nobridge' }); return res.status(200).json(await runBackup()); }
+      if (b.action === 'restore') {
+        if (!hasBridge() || !/^\d{4}-\d{2}-\d{2}$/.test(String(b.day || ''))) return res.status(400).json({ error: 'bad day' });
+        await runBackup().catch(() => {});
+        const r = await bridge('backup', { query: '&day=' + b.day }); const bk = await r.json();
+        if (!bk || !bk.state || !bk.state.projects) return res.status(400).json({ error: 'bad backup' });
+        const ns = bk.state; ns.rev = Math.max(state.rev || 0, ns.rev || 0);
+        const out = await writeState(ns); await recordHist(out).catch(() => {});
+        await appendLog([{ at: Date.now(), by: editorName(req), role: 'admin', fid: '', action: 'استرجاع نسخة احتياطية', target: b.day, name: '', fac: '', device: deviceLabel(req), changes: [] }]).catch(() => {});
+        return res.status(200).json({ ok: true, rev: out.rev });
+      }
       if (b.action === 'removeAdmin') cfg.admins = cfg.admins.filter(x => x.id !== b.id || x.id === String(req.headers['x-device-id'] || ''));
       else if (b.action === 'regen') {
         const used = new Set([process.env.ADMIN_PIN || '', process.env.VP_PIN || '', cfg.opsPin, cfg.qfsPin, ...Object.values(cfg.facilityPins)]);

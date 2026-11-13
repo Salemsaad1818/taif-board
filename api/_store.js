@@ -258,4 +258,33 @@ function describe(st, o) {
   return { action: 'تعديل', target, name, fac, changes: ch };
 }
 
-module.exports = { redis, hasDB, K, readState, writeState, auth, readConfig, writeConfig, deviceLabel, MAX_ADMINS, editorName, readLog, appendLog, describe };
+
+/* ---- storage bridge (Cloudflare D1 via taif-rounds) ---- */
+const BR_URL = process.env.TB_BRIDGE_URL || '';
+const BR_KEY = process.env.TB_BRIDGE_KEY || '';
+const hasBridge = () => !!(BR_URL && BR_KEY);
+async function bridge(a, { method = 'GET', body, type, query = '' } = {}) {
+  if (!hasBridge()) throw new Error('no bridge');
+  const h = { 'x-tb-key': BR_KEY };
+  if (type) h['content-type'] = type;
+  const r = await fetch(BR_URL + '?a=' + a + query, { method, headers: h, body });
+  if (!r.ok) { let e = ''; try { e = (await r.json()).error; } catch (x) {} throw new Error('bridge ' + r.status + ' ' + e); }
+  return r;
+}
+/* ---- progress history (one snapshot per day) ---- */
+const riyadhDay = (t = Date.now()) => new Date(t + 3 * 3600e3).toISOString().slice(0, 10);
+async function recordHist(state) {
+  if (!hasDB()) return;
+  const m = {};
+  for (const [id, p] of Object.entries(state.projects || {})) m[id] = Math.max(0, Math.min(100, Math.round(+p.progress || 0)));
+  await redis('HSET', 'tb:hist', riyadhDay(), JSON.stringify(m));
+}
+async function readHist() {
+  if (!hasDB()) return {};
+  const arr = await redis('HGETALL', 'tb:hist') || [];
+  const out = {};
+  for (let i = 0; i + 1 < arr.length; i += 2) { try { out[arr[i]] = JSON.parse(arr[i + 1]); } catch (e) {} }
+  return out;
+}
+
+module.exports = { hasBridge, bridge, recordHist, readHist, riyadhDay, redis, hasDB, K, readState, writeState, auth, readConfig, writeConfig, deviceLabel, MAX_ADMINS, editorName, readLog, appendLog, describe };
