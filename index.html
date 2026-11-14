@@ -883,21 +883,43 @@ async function exportWeekly(){
     const fn=p=>`<span style="color:${facOf(p).color}">${esc(facOf(p).name)}</span>`;
     const delta=av-(avPrev??av);
     const K=[['متوسط الإنجاز',av+'%',avPrev==null?'لا توجد بيانات سابقة':(delta>=0?'+':'')+delta+' نقطة عن الأسبوع الماضي','#2BD4F0'],['مشاريع تقدّمت',moved.filter(x=>x.b>x.a).length,'خلال الفترة','#22C55E'],['اكتملت',doneW.length,'خلال الفترة','#7C8CFF'],['متأخرة عن الخطة',late.length,'تحتاج متابعة','#F43F5E'],['تبدأ الأسبوع القادم',starts.length,'مشاريع جديدة','#F5A524'],['تنتهي الأسبوع القادم',ends.length,'مواعيد تسليم','#38BDF8']];
-    const pages=[];
-    pages.push(page(`<div class="card" style="margin-bottom:12px"><div class="scope" style="color:#F5A524;font-weight:700">التقرير الأسبوعي</div><h1 style="margin:4px 0">متابعة مشاريع تحسين المرافق</h1><div class="mut">الفترة: ${period}${partial?' · بدأ تسجيل المنحنى خلال الفترة':''}</div></div>
-      <div class="kp">${K.map(k=>`<div class="k"><div class="c" style="background:${k[3]}"></div><span>${k[0]}</span><b style="color:${k[3]}">${k[1]}</b><small>${k[2]}</small></div>`).join('')}</div>
-      <div class="card"><h3>منحنى الإنجاز العام</h3>${chartSVG(seriesAll(T),{w:700,h:190,c:'#2BD4F0',ink:'#C9D4F2',grid:'rgba(150,180,255,.22)',from:base?toD(base):wkStart})}</div>
-      <div class="card"><h3>التقدم خلال الأسبوع <span class="mut">(${moved.length})</span></h3>${moved.length?tbl(['المشروع','المنشأة','قبل أسبوع','الآن','التغيّر'],moved.slice(0,12).map(x=>`<tr><td>${esc(x.p.name)}</td><td>${fn(x.p)}</td><td>${x.a}%</td><td><b>${x.b}%</b></td><td style="color:${x.b>x.a?'#86EFAC':'#FDA4AF'};font-weight:700">${x.b>x.a?'+':''}${x.b-x.a}</td></tr>`)):'<div class="mut">لم تتغيّر نسب الإنجاز خلال الفترة.</div>'}</div>`));
-    pages.push(page(`<div class="card"><h3>متأخرة عن الخطة <span class="mut">(${late.length})</span></h3>${late.length?tbl(['المشروع','المنشأة','الحالة','الإنجاز','المتوقع','الفرق'],late.slice(0,12).map(p=>`<tr><td>${esc(p.name)}</td><td>${fn(p)}</td><td>${pill(p)}</td><td>${p.progress||0}%</td><td>${expected(p)??'—'}%</td><td style="color:#FDA4AF">${variance(p).t}</td></tr>`)):'<div class="mut">لا توجد مشاريع متأخرة.</div>'}</div>
-      <div class="card"><h3>تنتهي الأسبوع القادم <span class="mut">(${ends.length})</span></h3>${ends.length?tbl(['المشروع','المنشأة','الإنجاز','تاريخ النهاية'],ends.slice(0,10).map(p=>`<tr><td>${esc(p.name)}</td><td>${fn(p)}</td><td>${p.progress||0}%</td><td>${fmt(p.end)}</td></tr>`)):'<div class="mut">لا توجد مواعيد تسليم.</div>'}</div>
-      <div class="card"><h3>تبدأ الأسبوع القادم <span class="mut">(${starts.length})</span></h3>${starts.length?tbl(['المشروع','المنشأة','تاريخ البداية','تاريخ النهاية'],starts.slice(0,10).map(p=>`<tr><td>${esc(p.name)}</td><td>${fn(p)}</td><td>${fmt(p.start)}</td><td>${fmt(p.end)}</td></tr>`)):'<div class="mut">لا توجد مشاريع تبدأ.</div>'}</div>
-      ${doneW.length?`<div class="card"><h3>اكتملت خلال الأسبوع</h3>${doneW.map(p=>`<div class="tk d"><i>✓</i><span>${esc(p.name)} — ${fn(p)}</span></div>`).join('')}</div>`:''}`));
-    const N=pages.length;b.set('جارٍ إنشاء ملف PDF…');
-    root=document.createElement('div');root.className='rep';root.innerHTML=`<style>${REP_CSS}</style>`+pages.map((h,i)=>h.replace('{P}',i+1).replace('{N}',N)).join('');
+    const bl=[];
+    bl.push(`<div class="card" style="margin-bottom:12px"><div class="scope" style="color:#F5A524;font-weight:700">التقرير الأسبوعي</div><h1 style="margin:4px 0">متابعة مشاريع تحسين المرافق</h1><div class="mut">الفترة: ${period}${partial?' · بدأ تسجيل المنحنى خلال الفترة':''}</div></div>`);
+    bl.push(`<div class="kp">${K.map(k=>`<div class="k"><div class="c" style="background:${k[3]}"></div><span>${k[0]}</span><b style="color:${k[3]}">${k[1]}</b><small>${k[2]}</small></div>`).join('')}</div>`);
+    bl.push(`<div class="card"><h3>منحنى الإنجاز العام</h3>${chartSVG(seriesAll(T),{w:690,h:190,c:'#2BD4F0',ink:'#C9D4F2',grid:'rgba(150,180,255,.22)',from:base?toD(base):wkStart})}</div>`);
+    bl.push(`<div class="card"><h3>التقدم خلال الأسبوع <span class="mut">(${moved.length})</span></h3>${moved.length?tbl(['المشروع','المنشأة','قبل أسبوع','الآن','التغيّر'],moved.map(x=>`<tr><td>${esc(x.p.name)}</td><td>${fn(x.p)}</td><td>${x.a}%</td><td><b>${x.b}%</b></td><td style="color:${x.b>x.a?'#86EFAC':'#FDA4AF'};font-weight:700">${x.b>x.a?'+':''}${x.b-x.a}</td></tr>`)):'<div class="mut">لم تتغيّر نسب الإنجاز خلال الفترة.</div>'}</div>`);
+    bl.push(`<div class="card"><h3>متأخرة عن الخطة <span class="mut">(${late.length})</span></h3>${late.length?tbl(['المشروع','المنشأة','الحالة','الإنجاز','المتوقع','الفرق'],late.map(p=>`<tr><td>${esc(p.name)}</td><td>${fn(p)}</td><td>${pill(p)}</td><td>${p.progress||0}%</td><td>${expected(p)??'—'}%</td><td style="color:#FDA4AF">${variance(p).t}</td></tr>`)):'<div class="mut">لا توجد مشاريع متأخرة.</div>'}</div>`);
+    bl.push(`<div class="card"><h3>تنتهي الأسبوع القادم <span class="mut">(${ends.length})</span></h3>${ends.length?tbl(['المشروع','المنشأة','الإنجاز','تاريخ النهاية'],ends.map(p=>`<tr><td>${esc(p.name)}</td><td>${fn(p)}</td><td>${p.progress||0}%</td><td>${fmt(p.end)}</td></tr>`)):'<div class="mut">لا توجد مواعيد تسليم.</div>'}</div>`);
+    bl.push(`<div class="card"><h3>تبدأ الأسبوع القادم <span class="mut">(${starts.length})</span></h3>${starts.length?tbl(['المشروع','المنشأة','تاريخ البداية','تاريخ النهاية'],starts.map(p=>`<tr><td>${esc(p.name)}</td><td>${fn(p)}</td><td>${fmt(p.start)}</td><td>${fmt(p.end)}</td></tr>`)):'<div class="mut">لا توجد مشاريع تبدأ.</div>'}</div>`);
+    if(doneW.length)bl.push(`<div class="card"><h3>اكتملت خلال الأسبوع</h3>${tbl(['المشروع','المنشأة'],doneW.map(p=>`<tr><td>✓ ${esc(p.name)}</td><td>${fn(p)}</td></tr>`))}</div>`);
+    b.set('جارٍ ترتيب الصفحات…');
+    root=document.createElement('div');root.className='rep';root.innerHTML=`<style>${REP_CSS}.rep .bd{position:relative}.rep .bd table{width:100%;table-layout:fixed}.rep .bd td,.rep .bd th{white-space:normal!important;overflow-wrap:anywhere;word-break:break-word;max-width:none!important}.rep .bd th:first-child,.rep .bd td:first-child{width:34%}.rep .bd th:nth-child(2),.rep .bd td:nth-child(2){width:25%}.rep .bd .st{min-width:0;white-space:nowrap;padding:4px 8px}.rep .bd .card{overflow:hidden}.rep .cont{font-size:11px;color:#9AA8D8;font-weight:500}</style>`;
     root.style.cssText='position:absolute;top:0;left:0;z-index:-1;pointer-events:none';document.body.appendChild(root);
     try{await document.fonts.ready}catch(e){}
+    const LIM=1123-62;let cur=null;
+    const newPage=()=>{const pg=document.createElement('div');pg.className='pg';pg.innerHTML=top+'<div class="bd"></div>'+foot;root.appendChild(pg);cur=pg;return pg.querySelector('.bd')};
+    const fits=bd=>bd.getBoundingClientRect().bottom-cur.getBoundingClientRect().top<=LIM;
+    let bd=newPage();
+    for(const h of bl){
+      const t=document.createElement('div');t.innerHTML=h;let el=t.firstElementChild;bd.appendChild(el);
+      while(!fits(bd)){
+        const tb=el.querySelector('tbody');const fresh=bd.children.length===1;
+        if(tb&&tb.rows.length>1){
+          const mv=[];while(!fits(bd)&&tb.rows.length>1){const r=tb.rows[tb.rows.length-1];mv.unshift(r);r.remove()}
+          if(!fits(bd)&&!fresh){mv.unshift(...tb.rows);el.remove();bd=newPage();const c=el.cloneNode(true);c.querySelector('tbody').innerHTML='';mv.forEach(r=>c.querySelector('tbody').appendChild(r));bd.appendChild(c);el=c;continue}
+          if(!mv.length)break;
+          const c=el.cloneNode(true);const cb=c.querySelector('tbody');cb.innerHTML='';mv.forEach(r=>cb.appendChild(r));
+          const h3=c.querySelector('h3');if(h3&&!h3.querySelector('.cont'))h3.insertAdjacentHTML('beforeend',' <span class="cont">— تابع</span>');
+          bd=newPage();bd.appendChild(c);el=c;
+        }else{
+          if(fresh)break;el.remove();bd=newPage();bd.appendChild(el);
+        }
+      }
+    }
+    const pgs=[...root.querySelectorAll('.pg')],N=pgs.length;
+    pgs.forEach((pg,i)=>{const f=pg.querySelector('.ft');f.innerHTML=f.innerHTML.replace('{P}',i+1).replace('{N}',N)});
+    b.set('جارٍ إنشاء ملف PDF…');
     const pdf=new window.jspdf.jsPDF({unit:'mm',format:'a4',orientation:'portrait',compress:true});
-    const pgs=[...root.querySelectorAll('.pg')];
     for(let i=0;i<pgs.length;i++){b.set(`إنشاء الصفحة ${i+1} من ${pgs.length}…`);const cv=await window.html2canvas(pgs[i],{scale:1.6,useCORS:true,backgroundColor:'#061452',logging:false,windowWidth:1024});if(i)pdf.addPage();pdf.addImage(cv.toDataURL('image/jpeg',0.9),'JPEG',0,0,210,297,undefined,'FAST');cv.width=cv.height=0}
     const blob=pdf.output('blob');b.close();await deliver(blob,`التقرير-الأسبوعي-${stamp()}.pdf`);toast('تم تجهيز التقرير الأسبوعي');
   }catch(e){b.close();console.error(e);toast('تعذّر إنشاء التقرير، حاول مرة أخرى')}
@@ -1300,7 +1322,7 @@ const REP_CSS=`.rep{width:794px;font-family:"Inter","Readex Pro","Segoe UI",Taho
 .rep .grp{margin-bottom:12px}
 .rep .gh{display:flex;align-items:center;gap:8px;font-family:"Inter",sans-serif;font-weight:700;font-size:14px;margin:0 0 7px}
 .rep .gh small{font-family:"Readex Pro",sans-serif;font-weight:400;font-size:11px;color:#6F7FB5}
-.rep table{width:100%;border-collapse:separate;border-spacing:0;font-size:11.5px;background:#0A1A5E;border:1px solid #24408F;border-radius:12px;overflow:hidden}
+.rep table{width:100%;min-width:0!important;border-collapse:separate;border-spacing:0;font-size:11.5px;background:#0A1A5E;border:1px solid #24408F;border-radius:12px;overflow:hidden}
 .rep th{color:#6F7FB5;font-weight:500;text-align:right;padding:7px 8px;border-bottom:1px solid #18307A;font-size:10.5px}
 .rep td{padding:7px 8px;border-bottom:1px solid #18307A;text-align:right;vertical-align:middle}
 .rep tr:last-child td{border-bottom:0}
@@ -1805,7 +1827,7 @@ function useSnapshot(){
 </script>
 <script>
 (function(){
- const APP_V='1.57';
+ const APP_V='1.59';
  const ICON={sun:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',moon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z"/></svg>'};
  let theme='dark';try{theme=localStorage.getItem('tb-theme')||'dark'}catch(e){}
  function applyTheme(){document.documentElement.setAttribute('data-theme',theme);document.querySelectorAll('.logo-tile img,.s-id img,.bgdeco .wm').forEach(i=>{i.src=theme==='light'?'img/logo-color.png':'img/logo-white.png'});const m=document.querySelector('meta[name=theme-color]');if(m)m.content=theme==='light'?'#F5F7FC':'#061452';
